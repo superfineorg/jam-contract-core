@@ -1,14 +1,14 @@
 pragma solidity ^0.8.0;
 
 
-import "./Pausable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./HasNoEther.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
-import "./SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 contract ReEntrancyGuard {
   mapping(address => mapping(uint256 => bool)) public auctionsLocker;
