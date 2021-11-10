@@ -7,20 +7,20 @@ contract ContractFactory {
     CoinToken[] private coinTokens;
 
 
-    event CreateERC721(address indexed _owner, address contract_address);
-    event CreateERC20(address indexed _owner, address contract_address);
+    event CreateERC721(address indexed _owner, address contract_address, string name, string symbol);
+    event CreateERC20(address indexed _owner, address contract_address, string name, string symbol);
 
 
     function createERC721(string memory _name, string memory _symbol) public {
         UniqueItem item = new UniqueItem(msg.sender, _name, _symbol);
         uniqueItems.push(item);
-        emit CreateERC721(msg.sender, item.nftAddress());
+        emit CreateERC721(msg.sender, item.nftAddress(), _name, _symbol);
     }
 
     function createERC20(uint256 capacity, uint256 initialSupply, uint8 d, string memory _name, string memory _symbol) public {
         CoinToken token = new CoinToken(msg.sender, capacity, initialSupply, d, _name, _symbol);
         coinTokens.push(token);
-        emit CreateERC20(msg.sender, token.coinTokenAddress());
+        emit CreateERC20(msg.sender, token.coinTokenAddress(), _name, _symbol);
     }
 
     function getERC721(uint _index)
