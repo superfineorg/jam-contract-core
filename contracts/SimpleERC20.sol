@@ -3,9 +3,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import "./MinterRole.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 
 contract CoinToken is ERC20, ERC20Burnable,  Ownable {
     using SafeMath for uint256;
@@ -66,11 +65,4 @@ contract CoinToken is ERC20, ERC20Burnable,  Ownable {
         }
     }
 
-    function addMinter(address account) public override onlyOwner {
-        _addMinter(account);
-    }
-
-    function removeMinter(address account) public onlyOwner {
-        _removeMinter(account);
-    }
 }

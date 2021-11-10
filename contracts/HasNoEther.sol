@@ -1,6 +1,6 @@
 pragma solidity ^0.8;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Ownable.sol";
 
 contract HasNoEther is Ownable {
 
@@ -16,6 +16,6 @@ contract HasNoEther is Ownable {
   }
   
   function reclaimEther() external onlyOwner {
-    assert(payable(owner()).send(address(this).balance));
+    assert(payable(owner).send(address(this).balance));
   }
 }

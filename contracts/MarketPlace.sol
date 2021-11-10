@@ -32,6 +32,10 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
     ownerCut = _ownerCut;
   }
 
+  function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
+      require(_ownerCut <= 10000);
+      ownerCut = _ownerCut;
+  }
 
   function _computeCut(uint256 _price) internal view returns (uint256) {
     // NOTE: We don't use SafeMath (or similar) in this function because
@@ -416,7 +420,7 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
 
   function reclaimERC20(address _erc20Address) external onlyOwner {
     IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-    erc20Contract.transfer(owner(), erc20Contract.balanceOf(address(this)));
+    erc20Contract.transfer(owner, erc20Contract.balanceOf(address(this)));
   }
 
 }

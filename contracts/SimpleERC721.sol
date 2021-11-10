@@ -2,8 +2,8 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./Ownable.sol";
 
 contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
     using SafeMath for uint256;
