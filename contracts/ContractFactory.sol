@@ -5,8 +5,8 @@ import "./SimpleERC20.sol";
 contract ContractFactory {
     UniqueItem[] private uniqueItems;
     CoinToken[] private coinTokens;
-    
-    
+
+
     event CreateERC721(address indexed _owner, address contract_address);
     event CreateERC20(address indexed _owner, address contract_address);
 
@@ -16,7 +16,7 @@ contract ContractFactory {
         uniqueItems.push(item);
         emit CreateERC721(msg.sender, item.nftAddress());
     }
-    
+
     function createERC20(uint256 capacity, uint256 initialSupply, uint8 d, string memory _name, string memory _symbol) public {
         CoinToken token = new CoinToken(msg.sender, capacity, initialSupply, d, _name, _symbol);
         coinTokens.push(token);
