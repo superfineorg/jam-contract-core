@@ -72,7 +72,8 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
     address indexed _nftAddress,
     uint256 indexed _tokenId,
     uint256 _price,
-    address _seller
+    address _seller,
+    address erc20Address
   );
 
   event AuctionSuccessful(
@@ -159,7 +160,8 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
       _nftAddress,
       _tokenId,
       uint256(_auction.price),
-      _seller
+      _seller,
+      address(_auction.erc20Address)
     );
   }
 
