@@ -5,7 +5,7 @@ contract ERC20Factory {
     CoinToken[] private coinTokens;
 
 
-    event CreateERC20(address indexed _owner, string templateType, address contract_address, string name, string symbol);
+    event CreateERC20(address indexed _owner, string template_type, address contract_address, string name, string symbol);
 
 
 

@@ -5,7 +5,7 @@ contract ERC721Factory {
     UniqueItem[] private uniqueItems;
 
 
-    event CreateERC721(address indexed _owner, string templateType,  address contract_address, string name, string symbol);
+    event CreateERC721(address indexed _owner, string template_type,  address contract_address, string name, string symbol);
 
 
     function createERC721(string memory _name, string memory _symbol) public {
