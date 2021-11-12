@@ -7,19 +7,10 @@ import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./HasNoEther.sol";
 
-contract ReEntrancyGuard {
-  mapping(address => mapping(uint256 => bool)) public auctionsLocker;
-  modifier noReentrant(address _nftAddress, uint256 _tokenId) {
-    require(!auctionsLocker[_nftAddress][_tokenId], "No re-entrancy");
-    auctionsLocker[_nftAddress][_tokenId] = true;
-    _;
-    auctionsLocker[_nftAddress][_tokenId] = false;
-  }
-}
-
-contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
+contract MarketPlace is HasNoEther, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
 
   // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
@@ -313,7 +304,7 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
   )
   external
   whenNotPaused
-  noReentrant(_nftAddress, _tokenId)
+  nonReentrant
   {
     Auction storage _auction = auctions[_nftAddress][_tokenId];
 
