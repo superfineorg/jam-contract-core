@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./Ownable.sol";
 
-contract CoinToken is ERC20, ERC20Burnable,  Ownable {
+contract SimpleERC20Token is ERC20, ERC20Burnable,  Ownable {
     using SafeMath for uint256;
 
     uint256 private _totalMinted;
@@ -14,10 +14,10 @@ contract CoinToken is ERC20, ERC20Burnable,  Ownable {
     uint8 private _decimals;
     address public coinTokenAddress;
     
-    constructor(address _owner, uint256 capacity, uint256 initialSupply, uint8 d, string memory _name, string memory _symbol) ERC20(_name, _symbol) {
+    constructor(address _owner, uint256 capacity, uint256 initialSupply, uint8 decimal, string memory _name, string memory _symbol) ERC20(_name, _symbol) {
         _cap = capacity;
         owner = _owner;
-        _decimals = d;
+        _decimals = decimal;
         _mint(_owner, initialSupply);
         coinTokenAddress = address(this);
     }

@@ -1,12 +1,11 @@
 pragma solidity ^0.8.0;
+
 import "./SimpleERC721.sol";
 
 contract ERC721Factory {
     UniqueItem[] private uniqueItems;
 
-
     event CreateERC721(address indexed _owner, string template_type,  address contract_address, string name, string symbol);
-
 
     function createERC721(string memory _name, string memory _symbol) public {
         UniqueItem item = new UniqueItem(msg.sender, _name, _symbol);
@@ -26,7 +25,6 @@ contract ERC721Factory {
         )
     {
         UniqueItem item = uniqueItems[_index];
-
         return (item.nftAddress(), item.owner(), item.name(), item.symbol(), item.totalSupply());
     }
 }

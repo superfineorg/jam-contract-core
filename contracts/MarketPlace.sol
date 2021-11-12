@@ -1,14 +1,13 @@
 pragma solidity ^0.8.0;
 
-
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./HasNoEther.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/interfaces/IERC165.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "./HasNoEther.sol";
 
 contract ReEntrancyGuard {
   mapping(address => mapping(uint256 => bool)) public auctionsLocker;
@@ -61,31 +60,30 @@ contract MarketPlace is HasNoEther, Pausable, ReEntrancyGuard {
   struct Auction {
     address seller;
     uint128 price;
-    // _erc20Address, address(0) if place a price with (wei)
-    address erc20Address;
+    address erc20Address; // erc20Address, address(0) if place a price with (wei)
     address nftAddress;
     uint256 tokenId;
     uint64 startedAt;
   }
 
   event AuctionCreated(
-    address indexed _nftAddress,
-    uint256 indexed _tokenId,
-    uint256 _price,
-    address _seller,
+    address indexed nftAddress,
+    uint256 indexed tokenId,
+    uint256 price,
+    address seller,
     address erc20Address
   );
 
   event AuctionSuccessful(
-    address indexed _nftAddress,
-    uint256 indexed _tokenId,
-    uint256 _price,
-    address _winner
+    address indexed nftAddress,
+    uint256 indexed tokenId,
+    uint256 price,
+    address winner
   );
 
   event AuctionCancelled(
-    address indexed _nftAddress,
-    uint256 indexed _tokenId
+    address indexed nftAddress,
+    uint256 indexed tokenId
   );
 
   // Modifiers to check that inputs can be safely stored with a certain

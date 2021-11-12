@@ -8,7 +8,7 @@ import "./Ownable.sol";
 contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
     using SafeMath for uint256;
     uint256 _tokenIds;
-    string public tokenURIPrefix = "https://asset.gamejam.co/gamejam-nft/erc/721/card/";
+    string public tokenURIPrefix = "https://asset.gamejam.co/gamejam-nft/erc721/unique/";
     string public tokenURISuffix = ".json";
     address public nftAddress;
     
@@ -23,6 +23,7 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
       * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
      */
     event AwardItem(address indexed player, uint256 indexed tokenId);
+
     /**
       * @dev Emitted when owner of contract update royaltyFee from `previous_fee` to `current_fee`
      */
@@ -77,38 +78,29 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         return _ttId;
     }
 
+    function uintToString(uint v) public pure returns (string memory str) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            i++;
+            reversed[i] = bytes1(uint8(48 + remainder));
+        }
+        bytes memory s = new bytes(i + 1);
+        for (uint j = 0; j <= i; j++) {
+            s[j] = reversed[i - j];
+        }
+        str = string(s);
+    }
+
     function tokenURI(uint256 _tokenId) override public view returns (string memory) {
-        bytes memory _tokenURIPrefixBytes = bytes(tokenURIPrefix);
-        bytes memory _tokenURISuffixBytes = bytes(tokenURISuffix);
-        uint256 _tmpTokenId = _tokenId;
-        uint256 _length;
-
-        do {
-            _length++;
-            _tmpTokenId /= 10;
-        }
-        while (_tmpTokenId > 0);
-
-        bytes memory _tokenURIBytes = new bytes(_tokenURIPrefixBytes.length + _length + 5);
-        uint256 _i = _tokenURIBytes.length - 6;
-
-        _tmpTokenId = _tokenId;
-
-        do {
-            _tokenURIBytes[_i--] = bytes1(uint8(48 + _tmpTokenId % 10));
-            _tmpTokenId /= 10;
-        }
-        while (_tmpTokenId > 0);
-
-        for (_i = 0; _i < _tokenURIPrefixBytes.length; _i++) {
-            _tokenURIBytes[_i] = _tokenURIPrefixBytes[_i];
-        }
-
-        for (_i = 0; _i < _tokenURISuffixBytes.length; _i++) {
-            _tokenURIBytes[_tokenURIBytes.length + _i - 5] = _tokenURISuffixBytes[_i];
-        }
-
-        return string(_tokenURIBytes);
+        bytes memory b;
+        b = abi.encodePacked(tokenURIPrefix);
+        b = abi.encodePacked(b, uintToString(_tokenId));
+        b = abi.encodePacked(b, tokenURISuffix);
+        return string(b);
     }
 
     function formatStartIndex(uint256 _from_index) internal pure returns (uint256) {

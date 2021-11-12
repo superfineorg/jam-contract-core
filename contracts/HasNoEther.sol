@@ -16,6 +16,7 @@ contract HasNoEther is Ownable {
   }
   
   function reclaimEther() external onlyOwner {
-    assert(payable(owner).send(address(this).balance));
+    (bool success, ) = payable(owner).call{value:address(this).balance}("");
+    require(success, "Transfer failed.");
   }
 }
