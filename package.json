@@ -17,6 +17,7 @@
   "license": "ISC",
   "homepage": "https://bitbucket.org/gamejamcoteam/gamejam-contract-core#readme",
   "dependencies": {
-    "@openzeppelin/contracts": "^4.3.2"
+    "@openzeppelin/contracts": "^4.3.2",
+    "truffle-flattener": "^1.5.0"
   }
 }
