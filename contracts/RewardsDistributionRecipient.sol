@@ -1,6 +1,6 @@
 pragma solidity ^0.8;
 
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 // https://docs.synthetix.io/contracts/source/contracts/rewardsdistributionrecipient
 abstract contract RewardsDistributionRecipient is Ownable {

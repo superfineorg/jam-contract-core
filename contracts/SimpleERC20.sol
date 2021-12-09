@@ -1,10 +1,9 @@
 pragma solidity ^0.8.0;
 
-
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract SimpleERC20Token is ERC20, ERC20Burnable,  Ownable {
     using SafeMath for uint256;
@@ -15,8 +14,8 @@ contract SimpleERC20Token is ERC20, ERC20Burnable,  Ownable {
     address public coinTokenAddress;
     
     constructor(address _owner, uint256 capacity, uint256 initialSupply, uint8 decimal, string memory _name, string memory _symbol) ERC20(_name, _symbol) {
+        transferOwnership(payable(_owner));
         _cap = capacity;
-        owner = _owner;
         _decimals = decimal;
         _mint(_owner, initialSupply);
         coinTokenAddress = address(this);

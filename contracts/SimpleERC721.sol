@@ -3,51 +3,65 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./Ownable.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
     using SafeMath for uint256;
     uint256 _tokenIds;
-    string public tokenURIPrefix = "https://asset.gamejam.co/gamejam-nft/erc721/unique/";
+    string public tokenURIPrefix =
+        "https://asset.gamejam.co/gamejam-nft/erc721/unique/";
     string public tokenURISuffix = ".json";
     address public nftAddress;
-    
+
     mapping(uint256 => address) public firstOwner;
 
     // royalty fee takes on each auction, measured in basis points (1/100 of a percent).
-   // Values 0-10,00 map to 0%-10%
+    // Values 0-10,00 map to 0%-10%
     uint64 public royaltyFee;
 
-
     /**
-      * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
+     * @dev Emitted when `tokenId` token is transferred from `from` to `to`.
      */
     event AwardItem(address indexed player, uint256 indexed tokenId);
 
     /**
-      * @dev Emitted when owner of contract update royaltyFee from `previous_fee` to `current_fee`
+     * @dev Emitted when owner of contract update royaltyFee from `previous_fee` to `current_fee`
      */
     event UpdateRoyaltyFee(uint64 previous_fee, uint64 current_fee);
 
-    constructor(address _owner, string memory name, string memory symbol) ERC721(name, symbol) payable {
-        owner = payable(_owner);
+    constructor(
+        address _owner,
+        string memory name,
+        string memory symbol,
+        string memory _tokenURIPrefix
+    ) payable ERC721(name, symbol) {
+        transferOwnership(payable(_owner));
         nftAddress = address(this);
+        tokenURIPrefix = _tokenURIPrefix;
         royaltyFee = 0;
     }
 
-    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Enumerable, IERC165) returns (bool) {
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        override(ERC721Enumerable, IERC165)
+        returns (bool)
+    {
         bool b = interfaceId == type(IERC721).interfaceId ||
-    interfaceId == type(IERC721Metadata).interfaceId ||
-    (interfaceId == type(IERC2981).interfaceId && royaltyFee > 0 ) ||
-    super.supportsInterface(interfaceId);
+            interfaceId == type(IERC721Metadata).interfaceId ||
+            (interfaceId == type(IERC2981).interfaceId && royaltyFee > 0) ||
+            super.supportsInterface(interfaceId);
         return b;
     }
 
     function royaltyInfo(uint256 tokenId, uint256 salePrice)
-    external
-    view
-    virtual override(IERC2981)
-    returns (address receiver, uint256 royaltyAmount) {
+        external
+        view
+        virtual
+        override(IERC2981)
+        returns (address receiver, uint256 royaltyAmount)
+    {
         receiver = firstOwner[tokenId];
         royaltyAmount = salePrice.mul(royaltyFee).div(10000);
         return (receiver, royaltyAmount);
@@ -60,12 +74,20 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         emit UpdateRoyaltyFee(previousFee, royaltyFee);
     }
 
-    function setTokenURIPrefix(string calldata _tokenURIPrefix) public onlyOwner returns (string calldata) {
+    function setTokenURIPrefix(string calldata _tokenURIPrefix)
+        public
+        onlyOwner
+        returns (string calldata)
+    {
         tokenURIPrefix = _tokenURIPrefix;
         return _tokenURIPrefix;
     }
 
-    function setTokenURISuffix(string calldata _tokenURISuffix) public onlyOwner returns (string calldata) {
+    function setTokenURISuffix(string calldata _tokenURISuffix)
+        public
+        onlyOwner
+        returns (string calldata)
+    {
         tokenURISuffix = _tokenURISuffix;
         return _tokenURISuffix;
     }
@@ -78,24 +100,29 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         return _ttId;
     }
 
-    function uintToString(uint v) public pure returns (string memory str) {
-        uint maxlength = 100;
+    function uintToString(uint256 v) public pure returns (string memory str) {
+        uint256 maxlength = 100;
         bytes memory reversed = new bytes(maxlength);
-        uint i = 0;
+        uint256 i = 0;
         while (v != 0) {
-            uint remainder = v % 10;
+            uint256 remainder = v % 10;
             v = v / 10;
             i++;
             reversed[i] = bytes1(uint8(48 + remainder));
         }
         bytes memory s = new bytes(i + 1);
-        for (uint j = 0; j <= i; j++) {
+        for (uint256 j = 0; j <= i; j++) {
             s[j] = reversed[i - j];
         }
         str = string(s);
     }
 
-    function tokenURI(uint256 _tokenId) override public view returns (string memory) {
+    function tokenURI(uint256 _tokenId)
+        public
+        view
+        override
+        returns (string memory)
+    {
         bytes memory b;
         b = abi.encodePacked(tokenURIPrefix);
         b = abi.encodePacked(b, uintToString(_tokenId));
@@ -103,22 +130,34 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         return string(b);
     }
 
-    function formatStartIndex(uint256 _from_index) internal pure returns (uint256) {
-        return _from_index > 0 ? _from_index : 0; 
-    }
-    
-    function formatEndIndex(uint256 _end_index, uint256 _max) internal pure returns (uint256) {
-        return _end_index > _max ? _max : _end_index; 
+    function formatStartIndex(uint256 _from_index)
+        internal
+        pure
+        returns (uint256)
+    {
+        return _from_index > 0 ? _from_index : 0;
     }
 
-    function tokenOfOwner(address owner, uint256 _from_index, uint256 _end_index) public view returns (uint256[] memory) {
+    function formatEndIndex(uint256 _end_index, uint256 _max)
+        internal
+        pure
+        returns (uint256)
+    {
+        return _end_index > _max ? _max : _end_index;
+    }
+
+    function tokenOfOwner(
+        address owner,
+        uint256 _from_index,
+        uint256 _end_index
+    ) public view returns (uint256[] memory) {
         uint256 totalToken = ERC721.balanceOf(owner);
-        _from_index = formatStartIndex (_from_index);
+        _from_index = formatStartIndex(_from_index);
         _end_index = formatEndIndex(_end_index, totalToken);
-        uint256[] memory tokenIds = new uint256[](_end_index-_from_index);
+        uint256[] memory tokenIds = new uint256[](_end_index - _from_index);
         for (uint256 i = _from_index; i < _end_index; i += 1) {
             uint256 tmp = ERC721Enumerable.tokenOfOwnerByIndex(owner, i);
-            tokenIds[i-_from_index] = tmp;
+            tokenIds[i - _from_index] = tmp;
         }
         return tokenIds;
     }

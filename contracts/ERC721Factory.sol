@@ -7,8 +7,8 @@ contract ERC721Factory {
 
     event CreateERC721(address indexed _owner, string template_type,  address contract_address, string name, string symbol);
 
-    function createERC721(string memory _name, string memory _symbol) public {
-        UniqueItem item = new UniqueItem(msg.sender, _name, _symbol);
+    function createERC721(string memory _name, string memory _symbol, string memory _tokenUri) public {
+        UniqueItem item = new UniqueItem(msg.sender, _name, _symbol, _tokenUri);
         uniqueItems.push(item);
         emit CreateERC721(msg.sender, "SimpleERC721-V1",item.nftAddress(), _name, _symbol);
     }
