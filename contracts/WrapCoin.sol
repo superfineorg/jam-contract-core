@@ -11,6 +11,17 @@ contract WrapCoin is ERC20 {
         ERC20(name_, symbol_)
     {}
 
+
+    fallback() external payable {
+        super._mint(msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.value);
+    }
+
+    receive() external payable {
+        super._mint(msg.sender, msg.value);
+        emit Deposit(msg.sender, msg.value);
+    }
+
     function deposit() external payable {
         super._mint(msg.sender, msg.value);
         emit Deposit(msg.sender, msg.value);
