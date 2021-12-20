@@ -22,6 +22,9 @@ contract JamFaucet is HasNoEther {
     constructor() payable {
     }
 
+    receive() external payable {
+    }
+
     function setFaucetWei(uint256 _faucetWei) public onlyOwner {
         faucetWei = _faucetWei;
     }
