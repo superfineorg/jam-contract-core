@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HasNoEther.sol";
 
 contract JamFaucet is HasNoEther {
@@ -12,9 +13,10 @@ contract JamFaucet is HasNoEther {
 
     mapping(address => uint256) lastFaucet;
 
-    
+
     modifier canFaucet(address addr) {
-        require(lastFaucet[addr] + faucetInterval < block.timestamp, "requestFaucet too fast");
+        uint256 ll = lastFaucet[addr] + faucetInterval;
+        require(ll < block.timestamp, string(abi.encodePacked("requestFaucet too fast, next time at least ", Strings.toString(ll))));
         require(address(this).balance > faucetWei * 2, "out of balance");
         _;
     }
