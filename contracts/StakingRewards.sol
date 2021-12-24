@@ -55,7 +55,7 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
         address _rewardsToken,
         address _stakingToken
     )  {
-        owner = _owner;
+        transferOwnership(_owner);
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
         rewardsDistribution = _rewardsDistribution;
@@ -146,7 +146,7 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
     function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
         require(tokenAddress != address(stakingToken), "Cannot withdraw the staking token");
-        IERC20(tokenAddress).safeTransfer(owner, tokenAmount);
+        IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }
 

@@ -1,10 +1,12 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./HasNoEther.sol";
 
-contract JamFaucet is HasNoEther {
+contract JamFaucet is HasNoEther, Pausable {
     using SafeMath for uint256;
 
     uint256 public faucetWei;
@@ -34,7 +36,7 @@ contract JamFaucet is HasNoEther {
         faucetInterval = _faucetInterval;
     }
 
-    function faucet(address addr) public canFaucet(addr) {
+    function faucet(address addr) public canFaucet(addr) whenNotPaused {
         (bool success, ) = payable(addr).call{value: faucetWei}(
             ""
         );

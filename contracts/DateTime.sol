@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 library DateTime {
@@ -59,7 +60,7 @@ library DateTime {
         }
     }
 
-    function parseTimestamp(uint timestamp) internal pure returns (DateTimeObject dt) {
+    function parseTimestamp(uint timestamp) internal pure returns (DateTimeObject memory dt) {
         uint secondsAccountedFor = 0;
         uint buf;
         uint8 i;
@@ -218,7 +219,7 @@ library DateTime {
 
     function toDateUnit(uint timestamp) internal pure returns (uint256 d) {
 
-        DateTimeObject dt = parseTimestamp(timestamp);
+        DateTimeObject memory dt = parseTimestamp(timestamp);
 
         uint16 i;
 
@@ -235,7 +236,7 @@ library DateTime {
         // Month
         uint8[12] memory monthDayCounts;
         monthDayCounts[0] = 31;
-        if (isLeapYear(year)) {
+        if (isLeapYear(dt.year)) {
             monthDayCounts[1] = 29;
         }
         else {
