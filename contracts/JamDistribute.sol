@@ -67,22 +67,29 @@ contract JamDistribute is ReentrancyGuard {
         }
     }
 
-    function getReward(address tokenAddr) public 
+    function getReward(address tokenAddr) external 
         nonReentrant
         haveReward(tokenAddr)
         availableForToday(tokenAddr)
     {
         uint256 today = DateTime.toDateUnit(block.timestamp);
         uint256 rewardAmount = rewards[tokenAddr][msg.sender];
+        if (tokenAddr == address(0)) {
+            (bool success, ) = payable(msg.sender).call{value: rewardAmount}(
+                ""
+            );
+            require(success, "Transfer failed.");
+        } else {
+            IERC20(tokenAddr).safeTransfer(msg.sender, rewardAmount);
+        }
         rewards[tokenAddr][msg.sender] = 0;
         totalRewards[tokenAddr] = totalRewards[tokenAddr] - rewardAmount;
         latestRewardDate[tokenAddr][msg.sender] = today;
-        IERC20(tokenAddr).safeTransfer(msg.sender, rewardAmount);
     }
 
     function _calSumAmount(uint256[] memory amount) private pure returns (uint256) {
         uint256 total = 0;
-        for(uint i=0; i<amount.length; i++) {
+        for(uint i = 0; i < amount.length; i++) {
             total = total.add(amount[i]);
         }
         return total;
