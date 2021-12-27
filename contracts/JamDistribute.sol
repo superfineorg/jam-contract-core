@@ -4,10 +4,10 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-
+import "./HasNoEther.sol";
 import "./DateTime.sol";
 
-contract JamDistribute is ReentrancyGuard {
+contract JamDistribute is ReentrancyGuard, HasNoEther {
 
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
@@ -34,7 +34,7 @@ contract JamDistribute is ReentrancyGuard {
     constructor(
         address _owner
     ) {
-        owner = _owner;
+        transferOwnership(_owner);
     }
 
 
@@ -99,12 +99,6 @@ contract JamDistribute is ReentrancyGuard {
 
     receive() external payable {}
     
-
-    /* ======== Modifier ========= */
-    modifier onlyOwner() {
-        require(msg.sender == owner, "only onwer can take this action");
-        _;
-    }
 
     modifier onlyDistributor(address _token) {
         require(allowedDistributors[_token][msg.sender], "only distributor can take this action");
