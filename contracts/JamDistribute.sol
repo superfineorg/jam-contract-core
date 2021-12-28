@@ -12,29 +12,27 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    // Owner of the contract
-    address owner;
-
     // Store distributor status link to specific type of token
     mapping(address => mapping(address => bool)) private allowedDistributors;
 
-    // Store latest day that user get reward link to specific type of token
-    // latestRewardDate[tokenAddress][accountAddress] = latestRewardDate
-    mapping(address => mapping(address => uint256)) private latestRewardDate;
+    // Store latest day that distributored added reward for the user
+    mapping(address => mapping(address => uint256)) private latestAddRewardDate;
 
     // Store rewards of user link to specific type of token
-    // reward[tokenAddress][accountAddress] = rewardAmount 
     mapping(address => mapping(address => uint256)) private rewards;
 
-    // totalAmount of reward of a specific token, 
-    //just for the sake of no looping :D
+    // Total Amount of reward of a specific token, 
+    // just for the sake of no looping
     mapping(address => uint256) private totalRewards;
+
+    // Mapping store state of supported distribute token in the contract
+    mapping(address => bool) private supportedToken;
     
     /* ========== CONSTRUCTOR ========== */
     constructor(
-        address _owner
+        address _newOwner
     ) {
-        transferOwnership(_owner);
+        transferOwnership(_newOwner);
     }
 
 
@@ -47,17 +45,24 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         nonReentrant
         onlyDistributor(tokenAddr)
         enoughBalance(tokenAddr, amount)
+        onlySupportedToken(tokenAddr)
     {
         require(addrs.length == amount.length, "addrs and amount does not same length");
         uint256 addedRewardAmount = _calSumAmount(amount);
+        uint256 today = DateTime.toDateUnit(block.timestamp);
         for (uint i=0; i < addrs.length; i++) {
-            rewards[tokenAddr][addrs[i]] = rewards[tokenAddr][addrs[i]].add( amount[i]);
+            rewards[tokenAddr][addrs[i]] = (rewards[tokenAddr][addrs[i]]).add(amount[i]);
+            if (latestAddRewardDate[tokenAddr][addrs[i]] >= today) {
+                revert("reward already added for today");
+            }
+            latestAddRewardDate[tokenAddr][addrs[i]] = today;
         }
         totalRewards[tokenAddr] = totalRewards[tokenAddr].add(addedRewardAmount);
     }
 
     function updateDistributors(address tokenAddr, address distributor, bool ok) external 
-        onlyOwner 
+        onlyOwner
+        onlySupportedToken(tokenAddr) 
     {
         allowedDistributors[tokenAddr][distributor] = ok;
         if (ok) {
@@ -67,12 +72,22 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
     }
 
+    function updateSupportedToken(address tokenAddr, bool ok) external
+        onlyOwner
+    {
+        supportedToken[tokenAddr] = ok;
+        if (ok) {
+            emit AddToken(tokenAddr);
+        } else {
+            emit RemoveToken(tokenAddr);
+        }
+    }
+
     function getReward(address tokenAddr) external 
         nonReentrant
         haveReward(tokenAddr)
-        availableForToday(tokenAddr)
+        onlySupportedToken(tokenAddr)
     {
-        uint256 today = DateTime.toDateUnit(block.timestamp);
         uint256 rewardAmount = rewards[tokenAddr][msg.sender];
         if (tokenAddr == address(0)) {
             (bool success, ) = payable(msg.sender).call{value: rewardAmount}(
@@ -84,7 +99,6 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
         rewards[tokenAddr][msg.sender] = 0;
         totalRewards[tokenAddr] = totalRewards[tokenAddr] - rewardAmount;
-        latestRewardDate[tokenAddr][msg.sender] = today;
     }
 
     function _calSumAmount(uint256[] memory amount) private pure returns (uint256) {
@@ -99,9 +113,15 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
 
     receive() external payable {}
     
+    /* ======== Modfier ========= */
 
     modifier onlyDistributor(address _token) {
         require(allowedDistributors[_token][msg.sender], "only distributor can take this action");
+        _;
+    }
+
+    modifier onlySupportedToken(address _token){
+        require(supportedToken[_token], "unsupported token");
         _;
     }
 
@@ -117,12 +137,6 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         _;
     }
 
-    modifier availableForToday(address tokenAddr) {
-        uint256 today = DateTime.toDateUnit(block.timestamp);
-        require(latestRewardDate[tokenAddr][msg.sender] <= today, "already taken for today");
-        _;
-    }
-
     modifier haveReward(address tokenAddr) {
         require(rewards[tokenAddr][msg.sender] > 0, "you don't have any reward");
         _;
@@ -131,4 +145,6 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     /* ======== Event ========= */
     event AddDistributor(address indexed tokenAddr, address indexed distributor);
     event RemoveDistributor(address indexed tokenAddr, address indexed distributor);
+    event AddToken(address indexed tokenAddr);
+    event RemoveToken(address indexed tokenAddr);
 }
