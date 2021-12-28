@@ -83,8 +83,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
     }
 
-    function getReward(address tokenAddr) external 
-        nonReentrant
+    function getReward(address tokenAddr) external
         haveReward(tokenAddr)
         onlySupportedToken(tokenAddr)
     {
@@ -97,8 +96,8 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         } else {
             IERC20(tokenAddr).safeTransfer(msg.sender, rewardAmount);
         }
-        rewards[tokenAddr][msg.sender] = 0;
-        totalRewards[tokenAddr] = totalRewards[tokenAddr] - rewardAmount;
+        rewards[tokenAddr][msg.sender] = rewards[tokenAddr][msg.sender].sub(rewardAmount);
+        totalRewards[tokenAddr] = totalRewards[tokenAddr].sub(rewardAmount);
     }
 
     function _calSumAmount(uint256[] memory amount) private pure returns (uint256) {
