@@ -1,12 +1,11 @@
 const truffleAssert = require("truffle-assertions")
-const truffleFlattener = require("truffle-flattener")
 const JamFaucet = artifacts.require("JamFaucet")
 
 contract("JamFaucet", async(accounts) => {
     
     var faucet
 
-    before("Deployed contract", async() => {
+    before("Deploy contract", async() => {
         faucet = await JamFaucet.deployed()
         web3.eth.defaultAccount = accounts[0]
         web3.eth.sendTransaction({
