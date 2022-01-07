@@ -11,21 +11,21 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     using SafeMath for uint256;
 
     address private nodeAddress;
-    uint256 private firstPrice; // first price in usdt (with decimals 6)
+    uint256 private firstPrice; // first price in usdt
     uint256 private priceStep;  // number of node for each time increase price
-    uint256 private priceIncrease; // increase price in usdt (with decimals 6)
+    uint256 private priceIncrease; // increase price in usdt
     uint256 private maxNodeBuyPerTransaction;
     uint256 private slippageTolerance; // slippageTolerance 0 -> 10000 mean 0% to 100%
 
 
-    mapping(address => uint256) private tokenRate; // rate token/USDT (with decimals 6 for usdt)
+    mapping(address => uint256) private tokenRate; // rate token(with decimals)/USDT
 
     constructor(address _newOwner) {
         transferOwnership(_newOwner);
     }
 
     function _getNodeLicense(address _nftAddress) internal pure returns (NodeLicenseNFT) {
-        NodeLicenseNFT candidateContract = ERC721Enumerable(_nftAddress);
+        NodeLicenseNFT candidateContract = NodeLicenseNFT(_nftAddress);
         return candidateContract;
     }
 
@@ -66,9 +66,14 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
 
     function setRate(address[] memory tokenAddrs, uint256[] memory rate) external onlyOwner nonReentrant {
         require(tokenAddrs.length == rate.length, "addrs and amount does not same length");
-        for (uint i = 0; i < addrs.length; i++) {
+        for (uint i = 0; i < tokenAddrs.length; i++) {
             tokenRate[tokenAddrs[i]] = rate[i];
         }
+    }
+
+    function returnOwnerShip() external onlyOwner nonReentrant {
+        NodeLicenseNFT node = _getNodeLicense(nodeAddress);
+        node.transferOwnership(msg.sender);
     }
 
 
@@ -104,23 +109,24 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     function getBillAmount(address currencyAddress, uint256 nodeBuy) validNodeBuy(nodeBuy) validCurrency(currencyAddress) public view returns (uint256) {
         NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
         uint256 nodeCount = nodeContract.totalSupply();
-        uint256 nextNodeCount = nodeCount.add(nodeBuy);
+        uint256 nextNodeCount = nodeCount.add(nodeBuy)-1;
         uint256 currentBatch = nodeCount.div(priceStep);
         uint256 currentPrice = firstPrice + currentBatch * priceIncrease;
-        uint256 currentRemain = nodeCount.mod(priceStep);
         uint256 nextBatch = nextNodeCount.div(priceStep);
-        uint256 nextPrice = firstPrice + currentBatch * priceIncrease;
-        uint256 nextRemain = nextNodeCount.mod(priceStep);
+        uint256 nextPrice = firstPrice + nextBatch * priceIncrease;
         uint256 billAmount;
-        if (nextBatch == currencyBatch) {
-            return currentPrice.mul(nodeBuy).mul(tokenRate[currencyAddress]);
+        uint256 convertRate = tokenRate[currencyAddress];
+        if (nextBatch == currentBatch) {
+
+            return currentPrice.mul(nodeBuy).mul(convertRate);
         }
-        billAmount = currentPrice.mul(priceStep - nextRemain) + nextPrice.mul(nextRemain);
-        for (uint256 i = 1; i < nextBatch.sub(currencyBatch); i++) {
+        uint256 nextRemain = nextNodeCount.mod(priceStep);
+        billAmount = currentPrice.mul(priceStep - nextRemain) + nextPrice.mul(nextRemain+1);
+        for (uint256 i = 1; i < nextBatch.sub(currentBatch); i++) {
             uint256 batchPrice = currentPrice + i * priceIncrease;
             billAmount += batchPrice * priceStep;
         }
-        return billAmount.mul(tokenRate[currencyAddress]);
+        return billAmount.mul(convertRate);
     }
 
     /* ======== BuyNode ========= */
@@ -136,7 +142,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         }
         // process transfer token if currency is ERC20
         if (currencyAddress != address(0)) {
-            IERC20 erc20Contract = _getERC20Contract(_erc20Address);
+            IERC20 erc20Contract = _getERC20Contract(currencyAddress);
             uint256 _allowance = erc20Contract.allowance(msg.sender, address(this));
             require(_allowance >= billAmount);
             bool ok = erc20Contract.transferFrom(msg.sender, address(this), billAmount);
