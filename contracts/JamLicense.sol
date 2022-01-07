@@ -2,6 +2,7 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./HasNoEther.sol";
@@ -106,19 +107,19 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         return tokenRate[tokenAddr];
     }
 
-    function getBillAmount(address currencyAddress, uint256 nodeBuy) validNodeBuy(nodeBuy) validCurrency(currencyAddress) public view returns (uint256) {
+    function getBillAmount(address paidToken, uint256 numNodeLicense) validNumPurchaseNodeLicense(numNodeLicense) validCurrency(paidToken) public view returns (uint256) {
         NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
         uint256 nodeCount = nodeContract.totalSupply();
-        uint256 nextNodeCount = nodeCount.add(nodeBuy)-1;
+        uint256 nextNodeCount = nodeCount.add(numNodeLicense)-1;
         uint256 currentBatch = nodeCount.div(priceStep);
         uint256 currentPrice = firstPrice + currentBatch * priceIncrease;
         uint256 nextBatch = nextNodeCount.div(priceStep);
         uint256 nextPrice = firstPrice + nextBatch * priceIncrease;
         uint256 billAmount;
-        uint256 convertRate = tokenRate[currencyAddress];
+        uint256 convertRate = tokenRate[paidToken];
         if (nextBatch == currentBatch) {
 
-            return currentPrice.mul(nodeBuy).mul(convertRate);
+            return currentPrice.mul(numNodeLicense).mul(convertRate);
         }
         uint256 nextRemain = nextNodeCount.mod(priceStep);
         billAmount = currentPrice.mul(priceStep - nextRemain) + nextPrice.mul(nextRemain+1);
@@ -129,37 +130,33 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         return billAmount.mul(convertRate);
     }
 
-    /* ======== BuyNode ========= */
+    /* ======== PurchasedNode ========= */
 
-    function buyNode(address currencyAddress, uint256 nodeBuy, uint256 amount) validNodeBuy(nodeBuy) validCurrency(currencyAddress) external payable {
-        uint256 billAmount = getBillAmount(currencyAddress, nodeBuy);
+    function buyNode(address paidToken, uint256 numNodeLicense, uint256 amount) validNumPurchaseNodeLicense(numNodeLicense) validCurrency(paidToken) external payable {
+        uint256 billAmount = getBillAmount(paidToken, numNodeLicense);
         uint256 chargeAmount = billAmount;
         if (billAmount > amount) {
             // check slippageTolerance
             uint256 diff = billAmount - amount;
-            require(diff.mul(10000) < billAmount.mul(slippageTolerance), "out of slippage Tolerance");
+            require(diff.mul(10000) < billAmount.mul(slippageTolerance), "JAM_LICENSE: out of slippage tolerance");
             chargeAmount = amount;
         }
         // process transfer token if currency is ERC20
-        if (currencyAddress != address(0)) {
-            IERC20 erc20Contract = _getERC20Contract(currencyAddress);
-            uint256 _allowance = erc20Contract.allowance(msg.sender, address(this));
-            require(_allowance >= billAmount);
-            bool ok = erc20Contract.transferFrom(msg.sender, address(this), billAmount);
-            require(ok, "Not enough balance");
+        if (paidToken != address(0)) {
+            SafeERC20.safeTransferFrom(IERC20(paidToken), msg.sender, address(this), billAmount);
         } else {
             require(msg.value >= billAmount, "Not enough balance");
             if (msg.value > billAmount) {
-                uint256 _billExcess = msg.value - billAmount;
-                payable(msg.sender).transfer(_billExcess);
+                uint256 _billExceed = msg.value - billAmount;
+                payable(msg.sender).transfer(_billExceed);
             }
         }
         // mint token
         NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
-        for (uint256 i = 0; i < nodeBuy; i ++) {
+        for (uint256 i = 0; i < numNodeLicense; i ++) {
             nodeContract.mint(msg.sender);
         }
-        emit BuyNode(msg.sender, currencyAddress, nodeBuy, chargeAmount);
+        emit PurchasedNode(msg.sender, paidToken, numNodeLicense, chargeAmount);
     }
 
 
@@ -169,17 +166,17 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         erc20Contract.transfer(owner(), erc20Contract.balanceOf(address(this)));
     }
     /* ======== Modfier ========= */
-    modifier validNodeBuy(uint256 nodeBuy) {
-        require(nodeBuy > 0, "node buy can't not zero");
-        require(nodeBuy <= maxNodeBuyPerTransaction, "node buy reach limit");
+    modifier validNumPurchaseNodeLicense(uint256 numNodeLicense) {
+        require(numNodeLicense > 0, "node buy must be greather than 0");
+        require(numNodeLicense <= maxNodeBuyPerTransaction, "too many node buying");
         _;
     }
-    modifier validCurrency(address currencyAddress) {
-        require(tokenRate[currencyAddress] > 0, "currency not support");
+    modifier validCurrency(address paidToken) {
+        require(tokenRate[paidToken] > 0, "currency not support");
         _;
     }
 
     /* ======== Event ======== */
 
-    event BuyNode(address indexed buyer, address currencyToken, uint256 nodeBuy, uint256 billAmount);
+    event PurchasedNode(address indexed buyer, address currencyToken, uint256 numNodeLicense, uint256 billAmount);
 }
