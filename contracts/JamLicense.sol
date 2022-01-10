@@ -108,6 +108,12 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     }
 
     function getBillAmount(address paidToken, uint256 numNodeLicense) validNumPurchaseNodeLicense(numNodeLicense) validCurrency(paidToken) public view returns (uint256) {
+        uint256 billAmount = getBillAmountInUSD(numNodeLicense);
+        uint256 convertRate = tokenRate[paidToken];
+        return billAmount.mul(convertRate);
+    }
+
+    function getBillAmountInUSD(uint256 numNodeLicense) validNumPurchaseNodeLicense(numNodeLicense) public view returns (uint256) {
         NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
         uint256 nodeCount = nodeContract.totalSupply();
         uint256 nextNodeCount = nodeCount.add(numNodeLicense)-1;
@@ -116,10 +122,8 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         uint256 nextBatch = nextNodeCount.div(priceStep);
         uint256 nextPrice = firstPrice + nextBatch * priceIncrease;
         uint256 billAmount;
-        uint256 convertRate = tokenRate[paidToken];
         if (nextBatch == currentBatch) {
-
-            return currentPrice.mul(numNodeLicense).mul(convertRate);
+            return currentPrice.mul(numNodeLicense);
         }
         uint256 nextRemain = nextNodeCount.mod(priceStep);
         billAmount = currentPrice.mul(priceStep - nextRemain) + nextPrice.mul(nextRemain+1);
@@ -127,7 +131,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
             uint256 batchPrice = currentPrice + i * priceIncrease;
             billAmount += batchPrice * priceStep;
         }
-        return billAmount.mul(convertRate);
+        return billAmount;
     }
 
     /* ======== PurchasedNode ========= */
