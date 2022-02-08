@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./HasNoEther.sol";
+import "./utils/HasNoEther.sol";
 
 contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     using SafeMath for uint256;

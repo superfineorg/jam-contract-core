@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
+contract SimpleERC721 is ERC721Enumerable, Ownable, IERC2981 {
     using SafeMath for uint256;
     uint256 _tokenIds;
     string public tokenURIPrefix =
@@ -101,7 +101,7 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         return _ttId;
     }
 
-    function uintToString(uint256 v) public pure returns (string memory str) {
+    function _uintToString(uint256 v) private pure returns (string memory str) {
         uint256 maxlength = 100;
         bytes memory reversed = new bytes(maxlength);
         uint256 i = 0;
@@ -126,21 +126,21 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
     {
         bytes memory b;
         b = abi.encodePacked(tokenURIPrefix);
-        b = abi.encodePacked(b, uintToString(_tokenId));
+        b = abi.encodePacked(b, _uintToString(_tokenId));
         b = abi.encodePacked(b, tokenURISuffix);
         return string(b);
     }
 
-    function formatStartIndex(uint256 _from_index)
-        internal
+    function _formatStartIndex(uint256 _from_index)
+        private
         pure
         returns (uint256)
     {
         return _from_index > 0 ? _from_index : 0;
     }
 
-    function formatEndIndex(uint256 _end_index, uint256 _max)
-        internal
+    function _formatEndIndex(uint256 _end_index, uint256 _max)
+        private
         pure
         returns (uint256)
     {
@@ -153,8 +153,8 @@ contract UniqueItem is ERC721Enumerable, Ownable, IERC2981 {
         uint256 _end_index
     ) public view returns (uint256[] memory) {
         uint256 totalToken = ERC721.balanceOf(owner);
-        _from_index = formatStartIndex(_from_index);
-        _end_index = formatEndIndex(_end_index, totalToken);
+        _from_index = _formatStartIndex(_from_index);
+        _end_index = _formatEndIndex(_end_index, totalToken);
         uint256[] memory tokenIds = new uint256[](_end_index - _from_index);
         for (uint256 i = _from_index; i < _end_index; i += 1) {
             uint256 tmp = ERC721Enumerable.tokenOfOwnerByIndex(owner, i);

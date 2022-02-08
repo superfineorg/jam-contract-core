@@ -1,50 +1,59 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./HasNoEther.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract JamFaucet is HasNoEther, Pausable {
+contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
 
-    uint256 public faucetWei;
-
+    uint256 public faucetAmount;
     uint256 public faucetInterval;
-
     mapping(address => uint256) lastFaucet;
 
+    constructor() {}
 
-    modifier canFaucet(address addr) {
-        uint256 ll = lastFaucet[addr] + faucetInterval;
-        require(ll < block.timestamp, string(abi.encodePacked("requestFaucet too fast, next time at least ", Strings.toString(ll))));
-        require(address(this).balance > faucetWei * 2, "out of balance");
-        _;
+    receive() external payable {}
+
+    function getLastFaucet(address client) external view returns (uint256) {
+        return lastFaucet[client];
     }
 
-    constructor() payable {
+    function setFaucetAmount(uint256 faucetAmount_) external onlyOwner {
+        faucetAmount = faucetAmount_;
     }
 
-    receive() external payable {
+    function setFaucetInterval(uint256 faucetInterval_) external onlyOwner {
+        faucetInterval = faucetInterval_;
     }
 
-    function setFaucetWei(uint256 _faucetWei) public onlyOwner {
-        faucetWei = _faucetWei;
-    }
-    function setFaucetInterval(uint256 _faucetInterval) public onlyOwner {
-        faucetInterval = _faucetInterval;
-    }
-
-    function faucet(address addr) public canFaucet(addr) whenNotPaused {
-        (bool success, ) = payable(addr).call{value: faucetWei}(
-            ""
+    function faucet(address[] memory recipients)
+        external
+        nonReentrant
+        whenNotPaused
+    {
+        require(
+            address(this).balance > faucetAmount.mul(recipients.length),
+            "Not enough balance"
         );
-        require(success, "Faucet failed.");
-        lastFaucet[addr] = block.timestamp;
+        for (uint256 i = 0; i < recipients.length; i++)
+            if (block.timestamp > lastFaucet[recipients[i]] + faucetInterval) {
+                lastFaucet[recipients[i]] = block.timestamp;
+                (bool success, ) = payable(recipients[i]).call{
+                    value: faucetAmount
+                }("");
+                require(success, "Faucet failed");
+            }
     }
 
-    function getLastFaucet(address addr) public view returns (uint256) {
-        return lastFaucet[addr];
+    function pauseFaucet() external onlyOwner {
+        _pause();
+    }
+
+    function unpauseFaucet() external onlyOwner {
+        _unpause();
     }
 }
