@@ -35,3 +35,10 @@ build/
 node_modules
 **/artifacts
 .bitbucket*
+
+nodes
+
+bin
+artifacts
+cache
+.env

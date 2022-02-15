@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -11,7 +13,11 @@ import "./RewardsDistributionRecipient.sol";
 /** 
     Mostly using Staking Reward from: https://docs.synthetix.io/contracts/source/contracts/stakingrewards
 */
-contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausable {
+contract StakingRewards is
+    RewardsDistributionRecipient,
+    ReentrancyGuard,
+    Pausable
+{
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -35,7 +41,7 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
     event RewardPaid(address indexed user, uint256 reward);
     event RewardsDurationUpdated(uint256 newDuration);
     event Recovered(address token, uint256 amount);
-    
+
     modifier updateReward(address account) {
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
@@ -47,14 +53,14 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
     }
 
     /**
-    * Constructor: owner, reward token, staking token;
-    */
+     * Constructor: owner, reward token, staking token;
+     */
     constructor(
         address _owner,
         address _rewardsDistribution,
         address _rewardsToken,
         address _stakingToken
-    )  {
+    ) {
         transferOwnership(_owner);
         rewardsToken = IERC20(_rewardsToken);
         stakingToken = IERC20(_stakingToken);
@@ -79,20 +85,34 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
         if (_totalSupply == 0) {
             return rewardPerTokenStored;
         }
-        return rewardPerTokenStored.add(
-            lastTimeRewardApplicable().sub(lastUpdateTime).mul(rewardRate).mul(1e18).div(_totalSupply)
-        );
+        return
+            rewardPerTokenStored.add(
+                lastTimeRewardApplicable()
+                    .sub(lastUpdateTime)
+                    .mul(rewardRate)
+                    .mul(1e18)
+                    .div(_totalSupply)
+            );
     }
 
     function earned(address account) public view returns (uint256) {
-        return _balances[account].mul(rewardPerToken().sub(userRewardPerTokenPaid[account])).div(1e18).add(rewards[account]);
+        return
+            _balances[account]
+                .mul(rewardPerToken().sub(userRewardPerTokenPaid[account]))
+                .div(1e18)
+                .add(rewards[account]);
     }
 
     function getRewardForDuration() external view returns (uint256) {
         return rewardRate.mul(rewardsDuration);
     }
 
-    function stake(uint256 amount) external nonReentrant whenNotPaused updateReward(msg.sender) {
+    function stake(uint256 amount)
+        external
+        nonReentrant
+        whenNotPaused
+        updateReward(msg.sender)
+    {
         require(amount > 0, "Cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
@@ -100,7 +120,11 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount) public nonReentrant updateReward(msg.sender) {
+    function withdraw(uint256 amount)
+        public
+        nonReentrant
+        updateReward(msg.sender)
+    {
         require(amount > 0, "Cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
@@ -116,13 +140,18 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
             emit RewardPaid(msg.sender, reward);
         }
     }
-    
+
     function exit() external {
         withdraw(_balances[msg.sender]);
         getReward();
     }
 
-    function notifyRewardAmount(uint256 reward) external override onlyRewardsDistribution updateReward(address(0)) {
+    function notifyRewardAmount(uint256 reward)
+        external
+        override
+        onlyRewardsDistribution
+        updateReward(address(0))
+    {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
         } else {
@@ -135,8 +164,11 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
         // This keeps the reward rate in the right range, preventing overflows due to
         // very high values of rewardRate in the earned and rewardsPerToken functions;
         // Reward + leftover must be less than 2^256 / 10^18 to avoid overflow.
-        uint balance = rewardsToken.balanceOf(address(this));
-        require(rewardRate <= balance.div(rewardsDuration), "Provided reward too high");
+        uint256 balance = rewardsToken.balanceOf(address(this));
+        require(
+            rewardRate <= balance.div(rewardsDuration),
+            "Provided reward too high"
+        );
 
         lastUpdateTime = block.timestamp;
         periodFinish = block.timestamp.add(rewardsDuration);
@@ -144,8 +176,14 @@ contract StakingRewards is RewardsDistributionRecipient, ReentrancyGuard, Pausab
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
-    function recoverERC20(address tokenAddress, uint256 tokenAmount) external onlyOwner {
-        require(tokenAddress != address(stakingToken), "Cannot withdraw the staking token");
+    function recoverERC20(address tokenAddress, uint256 tokenAmount)
+        external
+        onlyOwner
+    {
+        require(
+            tokenAddress != address(stakingToken),
+            "Cannot withdraw the staking token"
+        );
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
     }

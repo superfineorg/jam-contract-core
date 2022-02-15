@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -8,7 +10,7 @@ import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./HasNoEther.sol";
+import "./utils/HasNoEther.sol";
 
 contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
@@ -406,6 +408,6 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
 
     function reclaimERC20(address _erc20Address) external onlyOwner {
         IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-        erc20Contract.transfer(owner, erc20Contract.balanceOf(address(this)));
+        erc20Contract.transfer(owner(), erc20Contract.balanceOf(address(this)));
     }
 }
