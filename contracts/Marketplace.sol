@@ -15,39 +15,6 @@ import "./utils/HasNoEther.sol";
 contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     using SafeMath for uint256;
 
-    // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
-    // Values 0-10,000 map to 0%-100%
-    uint256 public ownerCut;
-
-    constructor(uint256 _ownerCut) {
-        require(_ownerCut <= 10000);
-        ownerCut = _ownerCut;
-    }
-
-    function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
-        require(_ownerCut <= 10000);
-        ownerCut = _ownerCut;
-    }
-
-    function _computeCut(uint256 _price) internal view returns (uint256) {
-        // NOTE: We don't use SafeMath (or similar) in this function because
-        //  all of our entry functions carefully cap the maximum values for
-        //  currency (at 128-bits), and ownerCut <= 10000 (see the require()
-        //  statement in the ClockAuction constructor). The result of this
-        //  function is always guaranteed to be <= _price.
-        return (_price * ownerCut) / 10000;
-    }
-
-    // Map from token ID to their corresponding auction.
-    mapping(address => mapping(uint256 => Auction)) public auctions;
-
-    // mapping royaltyCut amount for each (address, erc20Address) pair,
-    // erc20Address = address(0) mean it value is wei
-    mapping(address => mapping(address => uint256)) private royaltyCuts;
-    mapping(address => mapping(address => uint256)) private lastWithdraws;
-
-    uint256 withdrawDuration = 14 days;
-
     // Represents an auction on an NFT
     struct Auction {
         address seller;
@@ -57,6 +24,23 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         uint256 tokenId;
         uint64 startedAt;
     }
+
+    uint256 withdrawDuration = 14 days;
+
+    // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
+    // Values 0-10,000 map to 0%-100%
+    uint256 public ownerCut;
+
+    // The total amount of royalty cut which cannot be reclaimed by the owner of the contract
+    mapping(address => uint256) private _totalRoyaltyCut;
+
+    // Map from an NFT to its corresponding auction.
+    mapping(address => mapping(uint256 => Auction)) public auctions;
+
+    // mapping royaltyCut amount for each (address, erc20Address) pair,
+    // erc20Address = address(0) mean it value is wei
+    mapping(address => mapping(address => uint256)) private royaltyCuts;
+    mapping(address => mapping(address => uint256)) private lastWithdraws;
 
     event AuctionCreated(
         address indexed nftAddress,
@@ -85,6 +69,25 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     modifier canBeStoredWith128Bits(uint256 _value) {
         require(_value < type(uint128).max);
         _;
+    }
+
+    constructor(uint256 _ownerCut) {
+        require(_ownerCut <= 10000);
+        ownerCut = _ownerCut;
+    }
+
+    function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
+        require(_ownerCut <= 10000, "Owner cut is too high");
+        ownerCut = _ownerCut;
+    }
+
+    function _computeCut(uint256 _price) internal view returns (uint256) {
+        // NOTE: We don't use SafeMath (or similar) in this function because
+        //  all of our entry functions carefully cap the maximum values for
+        //  currency (at 128-bits), and ownerCut <= 10000 (see the require()
+        //  statement in the ClockAuction constructor). The result of this
+        //  function is always guaranteed to be <= _price.
+        return (_price * ownerCut) / 10000;
     }
 
     function _isOnAuction(Auction storage _auction)
@@ -295,20 +298,29 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         payable
         whenNotPaused
     {
+        Auction memory auction = auctions[_nftAddress][_tokenId];
+        require(
+            auction.erc20Address == address(0),
+            "Cannot buy this item with native token"
+        );
         // _bid will throw if the bid or funds transfer fails
         _buy(_nftAddress, _tokenId, msg.value);
         _transfer(_nftAddress, msg.sender, _tokenId);
     }
 
-    function buyByERC20(address _nftAddress, uint256 _tokenId)
-        external
-        whenNotPaused
-        nonReentrant
-    {
+    function buyByERC20(
+        address _nftAddress,
+        uint256 _tokenId,
+        uint256 _maxPrice
+    ) external whenNotPaused nonReentrant {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
-
+        require(
+            _auction.erc20Address != address(0),
+            "Can only be paid with native token"
+        );
         require(_isOnAuction(_auction));
         uint256 _price = _auction.price;
+        require(_price < _maxPrice, "Item price is too high");
         uint256 tokenId = _tokenId;
         address _erc20Address = _auction.erc20Address;
 
@@ -321,8 +333,12 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         address _seller = _auction.seller;
         uint256 _auctioneerCut = _computeCut(_price);
         uint256 _sellerProceeds = _price - _auctioneerCut;
-        bool ok = erc20Contract.transferFrom(msg.sender, address(this), _price);
-        require(ok, "Not enough balance");
+        bool success = erc20Contract.transferFrom(
+            msg.sender,
+            address(this),
+            _price
+        );
+        require(success, "Not enough balance");
         erc20Contract.transfer(_seller, _sellerProceeds);
         if (_supportIERC2981(_nftAddress)) {
             IERC2981 royaltyContract = _getERC2981(_nftAddress);
@@ -330,7 +346,11 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
                 tokenId,
                 _auctioneerCut
             );
-            royaltyCuts[firstOwner][_erc20Address].add(amount);
+            _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address]
+                .add(amount);
+            royaltyCuts[firstOwner][_erc20Address] = royaltyCuts[firstOwner][
+                _erc20Address
+            ].add(amount);
         }
         _transfer(_nftAddress, msg.sender, _tokenId);
         _removeAuction(_nftAddress, _tokenId);
@@ -366,7 +386,12 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
                 IERC2981 royaltyContract = _getERC2981(_nftAddress);
                 (address firstOwner, uint256 amount) = royaltyContract
                     .royaltyInfo(_tokenId, _auctioneerCut);
-                royaltyCuts[firstOwner][address(0)].add(amount);
+                _totalRoyaltyCut[address(0)] = _totalRoyaltyCut[address(0)].add(
+                    amount
+                );
+                royaltyCuts[firstOwner][address(0)] = royaltyCuts[firstOwner][
+                    address(0)
+                ].add(amount);
             }
         }
 
@@ -393,21 +418,46 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         uint256 lastWithdraw = lastWithdraws[msg.sender][_erc20Address];
         require(
             lastWithdraw + withdrawDuration <= block.timestamp,
-            "only withdraw after 14 days before previous withdraw"
+            "Only withdraw after 14 days before previous withdraw"
         );
         uint256 royaltyCut = royaltyCuts[msg.sender][_erc20Address];
-        royaltyCuts[msg.sender][_erc20Address].sub(royaltyCut);
-        require(royaltyCut > 0, "no royaltyCut for withdraw");
+        require(royaltyCut > 0, "No royalty cut to withdraw");
+        royaltyCuts[msg.sender][_erc20Address] = 0;
+        _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address].sub(
+            royaltyCut
+        );
+        lastWithdraws[msg.sender][_erc20Address] = block.timestamp;
         if (_erc20Address == address(0)) {
             payable(msg.sender).transfer(royaltyCut);
         } else {
             IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-            erc20Contract.transfer(msg.sender, royaltyCut);
+            bool success = erc20Contract.transfer(msg.sender, royaltyCut);
+            require(success, "Transfer failed");
         }
+    }
+
+    function reclaimEther() external override onlyOwner {
+        (bool success, ) = payable(owner()).call{
+            value: address(this).balance.sub(_totalRoyaltyCut[address(0)])
+        }("");
+        require(success, "Reclaim Ether failed");
     }
 
     function reclaimERC20(address _erc20Address) external onlyOwner {
         IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-        erc20Contract.transfer(owner(), erc20Contract.balanceOf(address(this)));
+        erc20Contract.transfer(
+            owner(),
+            erc20Contract.balanceOf(address(this)).sub(
+                _totalRoyaltyCut[_erc20Address]
+            )
+        );
+    }
+
+    function pause() external onlyOwner {
+        _pause();
+    }
+
+    function unpause() external onlyOwner {
+        _unpause();
     }
 }
