@@ -69,7 +69,7 @@ contract SimpleERC721 is ERC721Enumerable, Ownable, IERC2981 {
     }
 
     function setRoyaltyFee(uint64 _royaltyFee) public onlyOwner {
-        require(_royaltyFee <= 1000, "Royalty fee is too high");
+        require(_royaltyFee <= 1000, "Royalty fee must not exceed 10%");
         uint64 previousFee = royaltyFee;
         royaltyFee = _royaltyFee;
         emit UpdateRoyaltyFee(previousFee, royaltyFee);

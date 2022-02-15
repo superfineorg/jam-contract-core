@@ -77,7 +77,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     }
 
     function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
-        require(_ownerCut <= 10000, "Owner cut is too high");
+        require(_ownerCut <= 10000, "Owner cut cannot exceed 100%");
         ownerCut = _ownerCut;
     }
 
