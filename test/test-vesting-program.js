@@ -123,12 +123,34 @@ describe("Test Vesting contract", () => {
       await this.vestingFactory
         .connect(this.operator)
         .attach(this.vestingContract.address)
-        .registerParticipant(this.participants[i].address, i, { value: this.purchaseAmounts[i] });
+        .registerParticipant(this.participants[i].address, i, i !== 3, { value: this.purchaseAmounts[i] });
     let vestingAmounts = [];
     for (let i = 0; i < 7; i++)
       vestingAmounts.push(await this.vestingContract.getVestingAmount(this.participants[i].address, i));
     for (let i = 0; i < 7; i++)
       expect(vestingAmounts[i].toString()).to.equal(this.purchaseAmounts[i]);
+  });
+
+  it("Try to remove an investor from a program", async () => {
+    await expect(
+      this.vestingFactory
+        .connect(this.operator)
+        .attach(this.vestingContract.address)
+        .removeParticipant(this.participants[4].address, 4)
+    ).to.be.revertedWith("Cannot remove an investor");
+  });
+
+  it("Remove a non-investor participant", async () => {
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .removeParticipant(this.participants[3].address, 3);
+    await expect(
+      this.vestingFactory
+        .connect(this.operator)
+        .attach(this.vestingContract.address)
+        .removeParticipant(this.participants[3].address, 3)
+    ).to.be.revertedWith("Participant already removed");
   });
 
   it("Claim vesting tokens", async () => {

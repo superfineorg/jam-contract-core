@@ -3,8 +3,9 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
-contract Vesting is Ownable {
+contract Vesting is Ownable, Pausable {
     struct Program {
         uint256 id;
         string name;
@@ -18,7 +19,9 @@ contract Vesting is Ownable {
 
     struct VestingInfo {
         uint256 claimedAmount;
+        uint256 removedMoment;
         mapping(uint256 => uint256) atProgram;
+        mapping(uint256 => bool) isInvestorAtProgram;
     }
 
     uint256 public TGE;
@@ -49,6 +52,8 @@ contract Vesting is Ownable {
         _block = block_;
         _operators[msg.sender] = true;
     }
+
+    receive() external payable {}
 
     modifier onlyOperator() {
         require(_operators[msg.sender], "Caller is not operator");
@@ -82,17 +87,20 @@ contract Vesting is Ownable {
     {
         if (TGE == 0) return 0;
         uint256 totalUnlockedAmount = 0;
+        uint256 lastMoment = block.timestamp;
+        if (_vestingInfoOf[participant].removedMoment > 0)
+            lastMoment = _vestingInfoOf[participant].removedMoment;
         for (uint256 i = 0; i < allPrograms.length; i++) {
             uint256 vestingAmount = _vestingInfoOf[participant].atProgram[i];
             if (vestingAmount > 0) {
                 uint256 programUnlockedAmount = 0;
                 Program memory program = allPrograms[i];
-                if (block.timestamp >= TGE)
+                if (lastMoment >= TGE)
                     programUnlockedAmount +=
                         (vestingAmount * program.tgeUnlockPercentage) /
                         10000;
-                if (block.timestamp >= program.unlockMoment) {
-                    uint256 numUnlockTimes = (block.timestamp -
+                if (lastMoment >= program.unlockMoment) {
+                    uint256 numUnlockTimes = (lastMoment -
                         program.unlockMoment) /
                         _block +
                         1;
@@ -182,11 +190,11 @@ contract Vesting is Ownable {
         }
     }
 
-    function registerParticipant(address participant, uint256 programId)
-        external
-        payable
-        onlyOperator
-    {
+    function registerParticipant(
+        address participant,
+        uint256 programId,
+        bool isInvestor
+    ) external payable onlyOperator {
         require(participant != address(0), "Register the zero address");
         require(programId < allPrograms.length, "Program does not exist");
         Program storage program = allPrograms[programId];
@@ -196,12 +204,28 @@ contract Vesting is Ownable {
             msg.value <= program.availableAmount,
             "Available amount not enough"
         );
+        _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
         _vestingInfoOf[participant].atProgram[programId] += msg.value;
         program.availableAmount -= msg.value;
         emit ParticipantRegistered(participant, programId, msg.value);
     }
 
-    function claimTokens() external {
+    function removeParticipant(address participant, uint256 programId)
+        external
+        onlyOperator
+    {
+        require(
+            !_vestingInfoOf[participant].isInvestorAtProgram[programId],
+            "Cannot remove an investor"
+        );
+        require(
+            _vestingInfoOf[participant].removedMoment == 0,
+            "Participant already removed"
+        );
+        _vestingInfoOf[participant].removedMoment = block.timestamp;
+    }
+
+    function claimTokens() external whenNotPaused {
         uint256 claimableAmount = getClaimableAmount(msg.sender);
         _vestingInfoOf[msg.sender].claimedAmount += claimableAmount;
         (bool success, ) = payable(msg.sender).call{value: claimableAmount}("");
@@ -209,7 +233,19 @@ contract Vesting is Ownable {
         emit ClaimSuccessful(msg.sender, claimableAmount);
     }
 
-    function emergencyWithdraw(address payable recipient) external onlyOwner {
+    function pause() external onlyOperator {
+        _pause();
+    }
+
+    function unpause() external onlyOperator {
+        _unpause();
+    }
+
+    function emergencyWithdraw(address payable recipient)
+        external
+        onlyOwner
+        whenPaused
+    {
         uint256 amount = address(this).balance;
         (bool success, ) = recipient.call{value: amount}("");
         require(success, "Emergency withdraw failed");
