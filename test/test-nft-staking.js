@@ -15,7 +15,7 @@ before("Deploy NFTStaking contract and a simple NFT contracts", async () => {
 
   // Deploy NFTStaking contract
   this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
-  this.nftStakingContract = await this.nftStakingFactory.deploy();
+  this.nftStakingContract = await this.nftStakingFactory.deploy(4000, 150000);
   await this.nftStakingContract.deployed();
 
   // Deploy a simple NFT 721 contract
@@ -255,4 +255,4 @@ describe("Test NFT staking program", () => {
   });
 });
 
-// Run: npx hardhat test ./test/test-nft-staking.js
+// Run: npx hardhat test test/test-nft-staking.js

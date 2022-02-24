@@ -59,7 +59,9 @@ contract NFTStaking is
 
     receive() external payable {}
 
-    constructor() {
+    constructor(uint256 lockDuration_, uint256 rewardPerDay_) {
+        lockDuration = lockDuration_;
+        rewardPerDay = rewardPerDay_;
         _operators[msg.sender] = true;
     }
 
