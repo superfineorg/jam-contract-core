@@ -90,15 +90,17 @@ contract Vesting is Ownable {
                     totalUnlockedAmount +=
                         (vestingAmount * program.tgeUnlockPercentage) /
                         10000;
-                uint256 numUnlockTimes = (block.timestamp -
-                    program.unlockMoment) /
-                    _block +
-                    1;
-                totalUnlockedAmount +=
-                    (vestingAmount *
-                        program.blockUnlockPercentage *
-                        numUnlockTimes) /
-                    10000;
+                if (block.timestamp >= program.unlockMoment) {
+                    uint256 numUnlockTimes = (block.timestamp -
+                        program.unlockMoment) /
+                        _block +
+                        1;
+                    totalUnlockedAmount +=
+                        (vestingAmount *
+                            program.blockUnlockPercentage *
+                            numUnlockTimes) /
+                        10000;
+                }
             }
         }
         return totalUnlockedAmount - _vestingInfoOf[participants].claimedAmount;
@@ -140,10 +142,10 @@ contract Vesting is Ownable {
             "Lengths mismatch"
         );
         require(TGE_ > 0, "TGE must be real moment");
-        TGE = TGE_;
+        if (TGE == 0) TGE = TGE_;
         for (uint256 i = 0; i < names.length; i++) {
             require(
-                unlockMoments[i] > TGE_,
+                unlockMoments[i] > TGE,
                 "TGE must happen before unlock moment"
             );
             require(
