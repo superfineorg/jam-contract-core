@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SimpleERC20Token is ERC20, ERC20Burnable, Ownable {
+contract SimpleERC20 is ERC20, ERC20Burnable, Ownable {
     using SafeMath for uint256;
 
     uint256 private _totalMinted;

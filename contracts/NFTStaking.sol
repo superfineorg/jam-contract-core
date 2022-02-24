@@ -40,6 +40,7 @@ contract NFTStaking is
     mapping(address => bool) private _isNFTWhitelisted;
     mapping(address => NFTType) private _typeOf;
     mapping(address => StakingInfo) private _stakingInfoOf;
+    mapping(address => bool) private _operators;
 
     event NFTStaked(
         address participant,
@@ -57,6 +58,15 @@ contract NFTStaking is
     event EmergencyWithdrawn(address recipient, uint256 amount);
 
     receive() external payable {}
+
+    constructor() {
+        _operators[msg.sender] = true;
+    }
+
+    modifier onlyOperator() {
+        require(_operators[msg.sender], "Caller is not operator");
+        _;
+    }
 
     function getCurrentReward(address participant)
         public
@@ -105,11 +115,20 @@ contract NFTStaking is
         return _stakingInfoOf[participant].stakingMomentOf[nftAddress][tokenId];
     }
 
-    function setLockDuration(uint256 lockDuration_) external onlyOwner {
+    function setOperators(address[] memory operators, bool[] memory isOperators)
+        external
+        onlyOwner
+    {
+        require(operators.length == isOperators.length, "Lengths mismatch");
+        for (uint256 i = 0; i < operators.length; i++)
+            _operators[operators[i]] = isOperators[i];
+    }
+
+    function setLockDuration(uint256 lockDuration_) external onlyOperator {
         lockDuration = lockDuration_;
     }
 
-    function setRewardPerDay(uint256 rewardPerDay_) external onlyOwner {
+    function setRewardPerDay(uint256 rewardPerDay_) external onlyOperator {
         rewardPerDay = rewardPerDay_;
     }
 
@@ -117,7 +136,7 @@ contract NFTStaking is
         address[] calldata nftAddresses,
         NFTType[] calldata types,
         bool[] calldata statuses
-    ) external onlyOwner {
+    ) external onlyOperator {
         require(nftAddresses.length == types.length, "Lengths mismatch");
         require(nftAddresses.length == statuses.length, "Lengths mismatch");
         for (uint256 i = 0; i < nftAddresses.length; i++) {
@@ -275,11 +294,11 @@ contract NFTStaking is
         require(success, "Settle failed");
     }
 
-    function pause() external onlyOwner {
+    function pause() external onlyOperator {
         _pause();
     }
 
-    function unpause() external onlyOwner {
+    function unpause() external onlyOperator {
         _unpause();
     }
 

@@ -8,8 +8,9 @@ const SIMPLE_NFT_1155 = "SimpleERC1155";
 
 before("Deploy NFTStaking contract and a simple NFT contracts", async () => {
   // Prepare parameters
-  const [deployer, participant] = await hre.ethers.getSigners();
+  const [deployer, operator, participant] = await hre.ethers.getSigners();
   this.deployer = deployer;
+  this.operator = operator;
   this.participant = participant;
 
   // Deploy NFTStaking contract
@@ -34,6 +35,13 @@ before("Deploy NFTStaking contract and a simple NFT contracts", async () => {
 });
 
 describe("Test NFT staking program", () => {
+  it("Setup operator role", async () => {
+    await this.nftStakingFactory
+      .connect(this.deployer)
+      .attach(this.nftStakingContract.address)
+      .setOperators([this.operator.address], [true]);
+  });
+
   it("Transfer some initial fund to the contract", async () => {
     await this.deployer.sendTransaction({
       to: this.nftStakingContract.address,
@@ -43,7 +51,7 @@ describe("Test NFT staking program", () => {
 
   it("Set lock duration", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .setLockDuration(5000);
     let lockDuration = await this.nftStakingContract.lockDuration();
@@ -52,7 +60,7 @@ describe("Test NFT staking program", () => {
 
   it("Set total reward per day", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .setRewardPerDay(100000);
     let rewardPerDay = await this.nftStakingContract.rewardPerDay();
@@ -61,7 +69,7 @@ describe("Test NFT staking program", () => {
 
   it("Whitelist the previously deployed NFT721 token", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT(
         [this.nft721Contract.address, this.nft1155Contract.address],
@@ -76,14 +84,14 @@ describe("Test NFT staking program", () => {
 
   it("Remove this NFT721 token from the whitelist", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT([this.nft721Contract.address], [0], [false]);
     let nft1155Whitelist = await this.nftStakingContract.nftWhitelist(0);
     expect(nft1155Whitelist).to.equal(this.nft1155Contract.address);
     await expect(this.nftStakingContract.nftWhitelist(1)).to.be.reverted;
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT([this.nft721Contract.address], [0], [true]);    // Whitelist it again for testing later
   });
@@ -223,7 +231,7 @@ describe("Test NFT staking program", () => {
 
   it("Pause the contract", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .pause();
     let isPaused = await this.nftStakingContract.paused();
@@ -239,7 +247,7 @@ describe("Test NFT staking program", () => {
 
   it("Unpause the contract", async () => {
     await this.nftStakingFactory
-      .connect(this.deployer)
+      .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .unpause();
     let isPaused = await this.nftStakingContract.paused();
