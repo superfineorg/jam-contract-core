@@ -6,7 +6,7 @@ const NFT_STAKING = "NFTStaking";
 const SIMPLE_NFT_721 = "SimpleERC721";
 const SIMPLE_NFT_1155 = "SimpleERC1155";
 
-before("Deploy NFTStaking contract and a simple NFT contracts", async () => {
+before("Deploy NFTStaking contract and simple NFT contracts", async () => {
   // Prepare parameters
   const [deployer, operator, participant] = await hre.ethers.getSigners();
   this.deployer = deployer;
@@ -15,7 +15,7 @@ before("Deploy NFTStaking contract and a simple NFT contracts", async () => {
 
   // Deploy NFTStaking contract
   this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
-  this.nftStakingContract = await this.nftStakingFactory.deploy(4000, 150000);
+  this.nftStakingContract = await this.nftStakingFactory.deploy(4, 150000);
   await this.nftStakingContract.deployed();
 
   // Deploy a simple NFT 721 contract
@@ -53,9 +53,9 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
-      .setLockDuration(5000);
+      .setLockDuration(5);
     let lockDuration = await this.nftStakingContract.lockDuration();
-    expect(lockDuration.toString()).to.equal("5000");
+    expect(lockDuration.toString()).to.equal("5");
   });
 
   it("Set total reward per day", async () => {
@@ -142,7 +142,14 @@ describe("Test NFT staking program", () => {
       .claimReward();
   });
 
-  it("Unstake the staked NFT above", async () => {
+  it("Unstake the staked NFT721 above", async () => {
+    await expect(
+      this.nftStakingFactory
+        .connect(this.participant)
+        .attach(this.nftStakingContract.address)
+        .unstake(this.nft721Contract.address, 1, 1)
+    ).to.be.revertedWith("NFT not unlocked yet");
+    await sleep(6000);
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
@@ -168,7 +175,7 @@ describe("Test NFT staking program", () => {
     expect(stakingMoment.toString()).to.equal("0");
   });
 
-  it("Stake a new NFT 1155", async () => {
+  it("Stake new NFT1155s", async () => {
     await this.nft1155Factory
       .connect(this.deployer)
       .attach(this.nft1155Contract.address)
@@ -203,7 +210,14 @@ describe("Test NFT staking program", () => {
     expect(stakingMoment.toString()).not.to.equal("0");
   });
 
-  it("Unstake the staked NFTs above", async () => {
+  it("Unstake the staked NFT1155s above", async () => {
+    await expect(
+      this.nftStakingFactory
+        .connect(this.participant)
+        .attach(this.nftStakingContract.address)
+        .unstake(this.nft1155Contract.address, 1, 8)
+    ).to.be.revertedWith("NFT not unlocked yet");
+    await sleep(6000);
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
@@ -254,5 +268,9 @@ describe("Test NFT staking program", () => {
     expect(isPaused).to.equal(false);
   });
 });
+
+let sleep = ms => {
+  return new Promise(resolve => setTimeout(resolve, ms));
+};
 
 // Run: npx hardhat test test/test-nft-staking.js

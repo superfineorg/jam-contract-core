@@ -217,7 +217,8 @@ contract NFTStaking is
             );
             require(
                 block.timestamp >=
-                    stakingInfo.stakingMomentOf[nftAddress][tokenId],
+                    stakingInfo.stakingMomentOf[nftAddress][tokenId] +
+                        lockDuration,
                 "NFT not unlocked yet"
             );
             IERC721(nftAddress).safeTransferFrom(
@@ -247,7 +248,8 @@ contract NFTStaking is
             );
             require(
                 block.timestamp >=
-                    stakingInfo.stakingMomentOf[nftAddress][tokenId],
+                    stakingInfo.stakingMomentOf[nftAddress][tokenId] +
+                        lockDuration,
                 "NFT not unlocked yet"
             );
             IERC1155(nftAddress).safeTransferFrom(
