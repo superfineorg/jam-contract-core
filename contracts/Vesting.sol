@@ -67,15 +67,15 @@ contract Vesting is Ownable {
         return _vestingInfoOf[participant].atProgram[programId];
     }
 
-    function getClaimedAmount(address participants)
+    function getClaimedAmount(address participant)
         external
         view
         returns (uint256)
     {
-        return _vestingInfoOf[participants].claimedAmount;
+        return _vestingInfoOf[participant].claimedAmount;
     }
 
-    function getClaimableAmount(address participants)
+    function getClaimableAmount(address participant)
         public
         view
         returns (uint256)
@@ -83,11 +83,12 @@ contract Vesting is Ownable {
         if (TGE == 0) return 0;
         uint256 totalUnlockedAmount = 0;
         for (uint256 i = 0; i < allPrograms.length; i++) {
-            uint256 vestingAmount = _vestingInfoOf[participants].atProgram[i];
+            uint256 vestingAmount = _vestingInfoOf[participant].atProgram[i];
             if (vestingAmount > 0) {
+                uint256 programUnlockedAmount = 0;
                 Program memory program = allPrograms[i];
                 if (block.timestamp >= TGE)
-                    totalUnlockedAmount +=
+                    programUnlockedAmount +=
                         (vestingAmount * program.tgeUnlockPercentage) /
                         10000;
                 if (block.timestamp >= program.unlockMoment) {
@@ -95,15 +96,18 @@ contract Vesting is Ownable {
                         program.unlockMoment) /
                         _block +
                         1;
-                    totalUnlockedAmount +=
+                    programUnlockedAmount +=
                         (vestingAmount *
                             program.blockUnlockPercentage *
                             numUnlockTimes) /
                         10000;
                 }
+                if (programUnlockedAmount > vestingAmount)
+                    programUnlockedAmount = vestingAmount;
+                totalUnlockedAmount += programUnlockedAmount;
             }
         }
-        return totalUnlockedAmount - _vestingInfoOf[participants].claimedAmount;
+        return totalUnlockedAmount - _vestingInfoOf[participant].claimedAmount;
     }
 
     function setOperators(address[] memory operators, bool[] memory isOperators)
