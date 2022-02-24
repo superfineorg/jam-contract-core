@@ -44,7 +44,7 @@ before("Deploy Vesting contract", async () => {
 
   // Deploy Vesting
   this.vestingFactory = await hre.ethers.getContractFactory(VESTING);
-  this.vestingContract = await this.vestingFactory.deploy(this.block);
+  this.vestingContract = await this.vestingFactory.deploy(this.block * 2);
   await this.vestingContract.deployed();
 });
 
@@ -56,6 +56,18 @@ describe("Test Vesting contract", () => {
       .setOperators([this.operator.address], [true]);
   });
 
+  it("Set block length", async () => {
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .setBlockLength(this.block);
+  });
+
+  it("Check claimable amount", async () => {
+    let claimableAmount = await this.vestingContract.getClaimableAmount(this.participants[2].address);
+    expect(claimableAmount.toString()).to.equal("0");
+  });
+
   it("Create 8 vesting programs", async () => {
     let start = Math.floor(Date.now() / 1000) - 5;
     let end = Math.floor(Date.now() / 1000) + 30;
@@ -64,6 +76,7 @@ describe("Test Vesting contract", () => {
       .connect(this.operator)
       .attach(this.vestingContract.address)
       .createPrograms(
+        Math.floor(Date.now() / 1000) - 1,
         [
           "Seed Sale",
           "Strategic Partners Sales",
@@ -118,17 +131,6 @@ describe("Test Vesting contract", () => {
       expect(vestingAmounts[i].toString()).to.equal(this.purchaseAmounts[i]);
   });
 
-  it("Start TGE", async () => {
-    let TGE = await this.vestingContract.TGE();
-    expect(TGE.toString()).to.equal("0");
-    await this.vestingFactory
-      .connect(this.operator)
-      .attach(this.vestingContract.address)
-      .startTGE();
-    TGE = await this.vestingContract.TGE();
-    expect(TGE.toString()).to.not.equal("0");
-  });
-
   it("Claim vesting tokens", async () => {
     await sleep(12000);
     await this.vestingFactory
@@ -143,3 +145,5 @@ describe("Test Vesting contract", () => {
 let sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
+
+// Run: npx hardhat test test/test-vesting-program.js

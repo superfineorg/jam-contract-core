@@ -42,7 +42,6 @@ contract Vesting is Ownable {
         uint256 programId,
         uint256 amount
     );
-    event TGEStarted();
     event ClaimSuccessful(address participant, uint256 amount);
     event EmergencyWithdrawn(address recipient, uint256 amount);
 
@@ -81,22 +80,21 @@ contract Vesting is Ownable {
         view
         returns (uint256)
     {
+        if (TGE == 0) return 0;
         uint256 totalUnlockedAmount = 0;
         for (uint256 i = 0; i < allPrograms.length; i++) {
             uint256 vestingAmount = _vestingInfoOf[participants].atProgram[i];
             if (vestingAmount > 0) {
                 Program memory program = allPrograms[i];
                 if (block.timestamp >= TGE)
-                    totalUnlockedAmount =
-                        totalUnlockedAmount +
+                    totalUnlockedAmount +=
                         (vestingAmount * program.tgeUnlockPercentage) /
                         10000;
                 uint256 numUnlockTimes = (block.timestamp -
                     program.unlockMoment) /
                     _block +
                     1;
-                totalUnlockedAmount =
-                    totalUnlockedAmount +
+                totalUnlockedAmount +=
                     (vestingAmount *
                         program.blockUnlockPercentage *
                         numUnlockTimes) /
@@ -115,7 +113,12 @@ contract Vesting is Ownable {
             _operators[operators[i]] = isOperators[i];
     }
 
+    function setBlockLength(uint256 block_) external onlyOperator {
+        _block = block_;
+    }
+
     function createPrograms(
+        uint256 TGE_,
         string[] memory names,
         uint256[] memory starts,
         uint256[] memory ends,
@@ -136,7 +139,17 @@ contract Vesting is Ownable {
             names.length == blockUnlockPercentages.length,
             "Lengths mismatch"
         );
+        require(TGE_ > 0, "TGE must be real moment");
+        TGE = TGE_;
         for (uint256 i = 0; i < names.length; i++) {
+            require(
+                unlockMoments[i] > TGE_,
+                "TGE must happen before unlock moment"
+            );
+            require(
+                tgeUnlockPercentages[i] + blockUnlockPercentages[i] <= 10000,
+                "Unlock percentages cannot exceed 100%"
+            );
             uint256 id = allPrograms.length;
             allPrograms.push(
                 Program(
@@ -173,16 +186,13 @@ contract Vesting is Ownable {
         Program storage program = allPrograms[programId];
         require(block.timestamp >= program.start, "Program not available");
         require(block.timestamp <= program.end, "Program is over");
-        require(msg.value <= program.availableAmount, "Not enough amount");
+        require(
+            msg.value <= program.availableAmount,
+            "Available amount not enough"
+        );
         _vestingInfoOf[participant].atProgram[programId] += msg.value;
         program.availableAmount -= msg.value;
         emit ParticipantRegistered(participant, programId, msg.value);
-    }
-
-    function startTGE() external onlyOperator {
-        require(TGE == 0, "TGE already launched");
-        TGE = block.timestamp;
-        emit TGEStarted();
     }
 
     function claimTokens() external {
