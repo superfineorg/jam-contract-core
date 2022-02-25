@@ -320,7 +320,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         );
         require(_isOnAuction(_auction));
         uint256 _price = _auction.price;
-        require(_price < _maxPrice, "Item price is too high");
+        require(_price <= _maxPrice, "Item price is too high");
         uint256 tokenId = _tokenId;
         address _erc20Address = _auction.erc20Address;
 
