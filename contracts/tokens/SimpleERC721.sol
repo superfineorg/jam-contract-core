@@ -39,7 +39,6 @@ contract SimpleERC721 is ERC721Enumerable, Ownable, IERC2981 {
         transferOwnership(payable(_owner));
         nftAddress = address(this);
         tokenURIPrefix = _tokenURIPrefix;
-        royaltyFee = 0;
     }
 
     function supportsInterface(bytes4 interfaceId)
@@ -69,7 +68,7 @@ contract SimpleERC721 is ERC721Enumerable, Ownable, IERC2981 {
     }
 
     function setRoyaltyFee(uint64 _royaltyFee) public onlyOwner {
-        require(_royaltyFee >= 0 && _royaltyFee <= 1000);
+        require(_royaltyFee <= 1000, "Royalty fee must not exceed 10%");
         uint64 previousFee = royaltyFee;
         royaltyFee = _royaltyFee;
         emit UpdateRoyaltyFee(previousFee, royaltyFee);

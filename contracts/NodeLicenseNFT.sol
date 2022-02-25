@@ -24,7 +24,7 @@ contract NodeLicenseNFT is ERC721Enumerable, Ownable {
     }
 
     function changeTokenPrefix(string memory prefix) external onlyOwner {
-      tokenURIPrefix = prefix;
+        tokenURIPrefix = prefix;
     }
 
     function totalSupply() public view virtual override returns (uint256) {
