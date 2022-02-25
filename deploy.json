@@ -1,0 +1,10 @@
+{
+	"polygontestnet": {
+		"Vesting": "0x53cCF53429AD3922aEd4890a7F70A664dD597BE5"
+	},
+	"bsctestnet": {
+		"Vesting": "0xB8eF3a4933bf06DFcF362cDD0a0e968E62cBBfC3"
+	},
+	"rinkeby": {},
+	"jamchaintestnet": {}
+}

@@ -37,3 +37,8 @@ node_modules
 .bitbucket*
 
 nodes
+
+bin
+artifacts
+cache
+.env
