@@ -157,8 +157,8 @@ contract Vesting is Ownable, Pausable {
         if (TGE == 0) TGE = TGE_;
         for (uint256 i = 0; i < names.length; i++) {
             require(
-                unlockMoments[i] > TGE,
-                "TGE must happen before unlock moment"
+                unlockMoments[i] >= TGE,
+                "TGE must not happen after unlock moment"
             );
             require(
                 tgeUnlockPercentages[i] + blockUnlockPercentages[i] <= 10000,
