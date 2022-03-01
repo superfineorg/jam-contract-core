@@ -436,12 +436,12 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         }
     }
 
-    function reclaimEther() external override onlyOwner {
-        (bool success, ) = payable(owner()).call{
-            value: address(this).balance.sub(_totalRoyaltyCut[address(0)])
-        }("");
-        require(success, "Reclaim Ether failed");
-    }
+    // function reclaimEther() external override onlyOwner {
+    //     (bool success, ) = payable(owner()).call{
+    //         value: address(this).balance.sub(_totalRoyaltyCut[address(0)])
+    //     }("");
+    //     require(success, "Reclaim Ether failed");
+    // }
 
     function reclaimERC20(address _erc20Address) external onlyOwner {
         IERC20 erc20Contract = _getERC20Contract(_erc20Address);
