@@ -136,8 +136,11 @@ describe("Test Vesting contract", () => {
     let vestingAmounts = [];
     for (let i = 0; i < 8; i++)
       vestingAmounts.push(await this.vestingContract.getVestingAmount(this.participants[i].address, i));
+    let allPrograms = await this.vestingContract.getProgramsInfo();
     for (let i = 0; i < 8; i++)
       expect(vestingAmounts[i].toString()).to.equal(this.purchaseAmounts[i]);
+    expect(allPrograms.length).to.equal(8);
+    expect(allPrograms[6].numParticipants.toString()).to.equal("1");
   });
 
   it("Check total vesting amount", async () => {
@@ -175,6 +178,8 @@ describe("Test Vesting contract", () => {
         .attach(this.vestingContract.address)
         .removeParticipant(this.participants[3].address, 3)
     ).to.be.revertedWith("Participant already removed");
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[3].numParticipants.toString()).to.equal("0");
   });
 
   it("Claim vesting tokens", async () => {

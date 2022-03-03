@@ -18,6 +18,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
         uint256 unlockMoment;
         uint256 unlockDistance;
         uint256 milestoneUnlockPercentage;
+        uint256 numParticipants;
     }
 
     struct VestingInfo {
@@ -233,7 +234,8 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
                     tgeUnlockPercentages[i],
                     unlockMoments[i],
                     unlockDistances[i],
-                    milestoneUnlockPercentages[i]
+                    milestoneUnlockPercentages[i],
+                    0
                 )
             );
             emit ProgramCreated(
@@ -270,6 +272,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
         _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
         _vestingInfoOf[participant].totalAtProgram[programId] += msg.value;
         program.availableAmount -= msg.value;
+        program.numParticipants++;
         emit ParticipantRegistered(participant, programId, msg.value);
     }
 
@@ -286,6 +289,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
             "Participant already removed"
         );
         _vestingInfoOf[participant].removedMoment = block.timestamp;
+        _allPrograms[programId].numParticipants--;
     }
 
     function claimTokens(uint256 programId) public whenNotPaused {
