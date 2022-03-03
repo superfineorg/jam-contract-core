@@ -14,9 +14,10 @@ contract SimpleOracle is IOracle, Ownable, ReentrancyGuard {
     constructor() {}
 
     function setRate(address[] memory tokenAddrs, uint256[] memory rate)
-    external
-    onlyOwner
-    nonReentrant
+        external
+        override
+        onlyOwner
+        nonReentrant
     {
         require(
             tokenAddrs.length == rate.length,
@@ -27,7 +28,12 @@ contract SimpleOracle is IOracle, Ownable, ReentrancyGuard {
         }
     }
 
-    function GetRate(address tokenAddress) external view returns (uint256){
+    function GetRate(address tokenAddress)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return tokenRate[tokenAddress];
     }
 }
