@@ -1,14 +1,15 @@
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
 import "./IRentalContract.sol";
 import "./utils/HasNoEther.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./IOracle.sol";
 
 contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
-
 
     address private backendAddr;
 
@@ -31,18 +32,23 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         backendAddr = _newOwner;
     }
 
+
+    fallback() external payable {}
+
+    receive() external payable {}
+
     /* ======== Config Rental ======== */
 
-    function setOwnerCut(uint256 _ownerCut) onlyOwner {
+    function setOwnerCut(uint256 _ownerCut) external onlyOwner {
         require(_ownerCut <= 10000, "Owner cut cannot exceed 100%");
         ownerCut = _ownerCut;
     }
 
-    function setBackendAddress(uint256 _backendAddr) onlyOwner {
+    function setBackendAddress(address _backendAddr) external onlyOwner {
         backendAddr = _backendAddr;
     }
 
-    function setBackendAddress(uint256 _oracleContract) onlyOwner {
+    function setoracleContract(address _oracleContract) external onlyOwner {
         oracleContract = _oracleContract;
     }
 
@@ -67,26 +73,24 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
 
     function _getOracleContract()
     internal
-    pure
+    view
     returns (IOracle)
     {
-        IOracle candidateContract = IOracle(_nftAddress);
+        IOracle candidateContract = IOracle(oracleContract);
         return candidateContract;
     }
 
     function _updateExpire(address renter, uint256 chainId, address contractAddress, uint256 tokenId, uint8 rentedDay)
     internal
     nonReentrant
-    pure
     {
-        string memory key = abi.encodePacked(Strings.toString(chainId), "-", abi.encodePacked(contractAddress), "-" , Strings.toString(tokenId));
+        string memory key = string(abi.encodePacked(Strings.toString(chainId), "-", abi.encodePacked(contractAddress), "-", Strings.toString(tokenId)));
         uint256 currentTime = block.timestamp;
         if (currentTime > rentedExpire[renter][key]) {
-            rentedExpire[renter][key] = currentTime.add(rentedDay * 1 days);
+            rentedExpire[renter][key] = currentTime + (rentedDay * 1 days);
         }else{
-            rentedExpire[renter][key] = rentedExpire[renter][key].add(rentedDay * 1 days);
+            rentedExpire[renter][key] = rentedExpire[renter][key] + (rentedDay * 1 days);
         }
-        return candidateContract;
     }
 
     /* ======== End Internal function ======== */
@@ -107,14 +111,14 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
       * @dev add profit to user. USDT alway have 6 decimal
       * TODO: Need oracle to convert usdt to jam
     */
-    function addProfit(address owner, uint256 addingBalance, string memory receiptId) external onlyNewReceiptId(receiptId) onlyBackend returns (bool) {
+    function addProfit(address owner, uint256 addingBalance, string memory receiptId) public onlyNewReceiptId(receiptId) onlyBackend returns (bool) {
         require(addingBalance > 0);
         // TODO: need convert addingBalance from usdt to jam
-        IOracle oracleContract = _getOracleContract();
-        uint256 jamRate = oracleContract.GetRate(address(0));
+        IOracle or = _getOracleContract();
+        uint256 jamRate = or.GetRate(address(0));
         // calculate the jamBalance
-        uint256 jamBalance = jamRate.mul(addingBalance);
-        ownerProfit[owner] = ownerProfit[owner].add(jamBalance);
+        uint256 jamBalance = jamRate * addingBalance;
+        ownerProfit[owner] = ownerProfit[owner] + jamBalance;
         receiptLog[receiptId] = jamBalance;
         return true;
     }
@@ -127,19 +131,28 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         if (paidToken == address(0)) {
             require(msg.value >= amount, "not enough balance");
         }
-        IOracle oracleContract = _getOracleContract();
-        uint256 tokenRate = oracleContract.GetRate(paidToken);
-        require(tokenRate > 0 , "paid token is not support");
-        uint256 totalBalanceUSD = amount.div(tokenRate);
-        uint256 pricingPerDayUSD = rentPriceUSD[chainId][contractAddress][tokenId];
+        IOracle or = _getOracleContract();
+        uint256 tokenRate = or.GetRate(paidToken);
+        require(tokenRate > 0, "paid token is not support");
+        uint256 totalBalanceUSD = amount / tokenRate;
+        uint256 pricingPerDayUSD = viewNFTPricing(chainId, contractAddress, tokenId);
+        require(pricingPerDayUSD > 0, "nft is not public for rent");
         //check slippageTolerance
-        uint256 billAmount = pricingPerDayUSD.mul(rentedDay);
-        uint256 diff = billAmount.sub(amount);
-        require(diff.mul(10000) < billAmount.mul(slippageTolerance), "out of slippage tolerance");
+        uint256 billAmount = pricingPerDayUSD * rentedDay;
+        require(totalBalanceUSD * 10000 > billAmount * (10000 - slippageTolerance), "out of slippage tolerance");
+        if (paidToken != address(0)) {
+            // Transfer ERC20
+            SafeERC20.safeTransferFrom(
+                IERC20(paidToken),
+                msg.sender,
+                address(this), amount
+            );
+        }
+
         // calculate fee and addingBalance
-        uint256 fee = amount.mul(ownerCut).div(10000);
-        uint256 addingBalance = amount.sub(fee);
-        emit RentNFT(msg.sender, chainId, contractAddress, tokenId, rentedDay, paidToken, amount, addingBalance, fee);
+        uint256 fee = uint256(totalBalanceUSD * ownerCut) / uint256(10000);
+        totalBalanceUSD = totalBalanceUSD - fee;
+        emit RentNFT(msg.sender, chainId, contractAddress, tokenId, rentedDay, paidToken, amount, totalBalanceUSD, fee);
         return true;
     }
 
@@ -149,7 +162,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
     */
     function rentNFTViaIAP(uint256 chainId, address contractAddress, uint256 tokenId, address renter, address owner, uint8 rentedDay, uint256 addingBalance, string memory receiptId) external onlyBackend returns (bool){
         // TODO: need oracle to convert addingBalance form USDT to JAM
-        addingBalance(owner, addingBalance, receiptId);
+        addProfit(owner, addingBalance, receiptId);
         emit RentNFTViaIAP(renter, owner, chainId, contractAddress, tokenId, rentedDay, receiptId, addingBalance);
         return true;
     }
@@ -171,8 +184,41 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
     view
     returns (uint256)
     {
-        string memory key = abi.encodePacked(Strings.toString(chainId), "-", abi.encodePacked(contractAddress), "-" , Strings.toString(tokenId));
+        string memory key = string(abi.encodePacked(Strings.toString(chainId), "-", abi.encodePacked(contractAddress), "-", Strings.toString(tokenId)));
         return rentedExpire[msg.sender][key];
+    }
+
+    function viewNFTPricing(uint256 chainId, address contractAddress, uint256 tokenId)
+    public
+    view
+    returns (uint256)
+    {
+        return rentPriceUSD[chainId][contractAddress][tokenId];
+    }
+
+    function viewBillAmountOnUSD(uint256 chainId, address contractAddress, uint256 tokenId, uint8 rentedDay)
+    public
+    view
+    returns (uint256)
+    {
+        uint256 pricingPerDayUSD = viewNFTPricing(chainId, contractAddress, tokenId);
+        require(pricingPerDayUSD > 0, "nft is not public for rent");
+
+        //check slippageTolerance
+        uint256 billAmount = pricingPerDayUSD * rentedDay;
+        return billAmount;
+    }
+
+    function viewBillAmountOnToken(uint256 chainId, address contractAddress, uint256 tokenId, uint8 rentedDay, address paidToken)
+    public
+    view
+    returns (uint256)
+    {
+        uint256 billAmount = viewBillAmountOnUSD(chainId, contractAddress, tokenId, rentedDay);
+        IOracle or = _getOracleContract();
+        uint256 tokenRate = or.GetRate(paidToken);
+        billAmount = billAmount * tokenRate;
+        return billAmount;
     }
 
     /* ======== End Query function ======== */
@@ -190,7 +236,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         (bool success,) = payable(msg.sender).call{value : amount}(
             ""
         );
-        ownerProfit[msg.sender] = ownerProfit[msg.sender].sub(amount);
+        ownerProfit[msg.sender] = ownerProfit[msg.sender] - amount;
         require(success, "Transfer failed.");
     }
 
