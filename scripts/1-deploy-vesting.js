@@ -10,8 +10,8 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
   const factory = await hre.ethers.getContractFactory(CONTRACT_NAME);
-  console.log(`Deploying ${CONTRACT_NAME} with parameters: "${300}"`);
-  const contract = await factory.deploy(300);
+  console.log(`Deploying ${CONTRACT_NAME} with no parameter`);
+  const contract = await factory.deploy();
   await contract.deployed();
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 
