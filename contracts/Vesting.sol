@@ -4,52 +4,60 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Vesting is Ownable, Pausable {
+contract Vesting is Ownable, Pausable, ReentrancyGuard {
     struct Program {
         uint256 id;
-        string name;
-        uint256 start;
-        uint256 end;
+        string metadata;
+        uint256 startRegistration;
+        uint256 endRegistration;
+        uint256 allocationAmount;
         uint256 availableAmount;
         uint256 tgeUnlockPercentage;
         uint256 unlockMoment;
-        uint256 blockUnlockPercentage;
+        uint256 unlockDistance;
+        uint256 milestoneUnlockPercentage;
     }
 
     struct VestingInfo {
-        uint256 claimedAmount;
+        uint256 totalClaimedAmount;
         uint256 removedMoment;
-        mapping(uint256 => uint256) atProgram;
+        mapping(uint256 => uint256) totalAtProgram;
+        mapping(uint256 => uint256) claimedAtProgram;
         mapping(uint256 => bool) isInvestorAtProgram;
     }
 
     uint256 public TGE;
-    Program[] public allPrograms;
-    uint256 private _block;
+    Program[] private _allPrograms;
     mapping(address => bool) private _operators;
     mapping(address => VestingInfo) private _vestingInfoOf;
 
     event ProgramCreated(
         uint256 id,
-        string name,
-        uint256 start,
-        uint256 end,
+        string metadata,
+        uint256 startRegistration,
+        uint256 endRegistration,
         uint256 initialAmount,
         uint256 tgeUnlockPercentage,
         uint256 unlockMoment,
-        uint256 blockUnlockPercentage
+        uint256 unlockDistance,
+        uint256 milestoneUnlockPercentage
     );
+    event MetadataUpdated(uint256 programId, string metadata);
     event ParticipantRegistered(
         address participant,
         uint256 programId,
         uint256 amount
     );
-    event ClaimSuccessful(address participant, uint256 amount);
+    event ClaimSuccessful(
+        address participant,
+        uint256 programId,
+        uint256 amount
+    );
     event EmergencyWithdrawn(address recipient, uint256 amount);
 
-    constructor(uint256 block_) Ownable() {
-        _block = block_;
+    constructor() Ownable() {
         _operators[msg.sender] = true;
     }
 
@@ -60,8 +68,12 @@ contract Vesting is Ownable, Pausable {
         _;
     }
 
-    function allProgramsLength() external view returns (uint256) {
-        return allPrograms.length;
+    function numPrograms() external view returns (uint256) {
+        return _allPrograms.length;
+    }
+
+    function getProgramsInfo() external view returns (Program[] memory) {
+        return _allPrograms;
     }
 
     function getVestingAmount(address participant, uint256 programId)
@@ -69,53 +81,83 @@ contract Vesting is Ownable, Pausable {
         view
         returns (uint256)
     {
-        return _vestingInfoOf[participant].atProgram[programId];
+        return _vestingInfoOf[participant].totalAtProgram[programId];
     }
 
-    function getClaimedAmount(address participant)
+    function getTotalVestingAmount(address participant)
         external
         view
         returns (uint256)
     {
-        return _vestingInfoOf[participant].claimedAmount;
+        uint256 totalVestingAmount = 0;
+        for (uint256 i = 0; i < _allPrograms.length; i++)
+            totalVestingAmount += _vestingInfoOf[participant].totalAtProgram[i];
+        return totalVestingAmount;
     }
 
-    function getClaimableAmount(address participant)
+    function getClaimedAmount(address participant, uint256 programId)
+        external
+        view
+        returns (uint256)
+    {
+        return _vestingInfoOf[participant].claimedAtProgram[programId];
+    }
+
+    function getTotalClaimedAmount(address participant)
+        external
+        view
+        returns (uint256)
+    {
+        return _vestingInfoOf[participant].totalClaimedAmount;
+    }
+
+    function getClaimableAmount(address participant, uint256 programId)
         public
         view
         returns (uint256)
     {
+        if (programId >= _allPrograms.length) return 0;
         if (TGE == 0) return 0;
-        uint256 totalUnlockedAmount = 0;
+        uint256 programUnlockedAmount = 0;
         uint256 lastMoment = block.timestamp;
         if (_vestingInfoOf[participant].removedMoment > 0)
             lastMoment = _vestingInfoOf[participant].removedMoment;
-        for (uint256 i = 0; i < allPrograms.length; i++) {
-            uint256 vestingAmount = _vestingInfoOf[participant].atProgram[i];
-            if (vestingAmount > 0) {
-                uint256 programUnlockedAmount = 0;
-                Program memory program = allPrograms[i];
-                if (lastMoment >= TGE)
-                    programUnlockedAmount +=
-                        (vestingAmount * program.tgeUnlockPercentage) /
-                        10000;
-                if (lastMoment >= program.unlockMoment) {
-                    uint256 numUnlockTimes = (lastMoment -
-                        program.unlockMoment) /
-                        _block +
-                        1;
-                    programUnlockedAmount +=
-                        (vestingAmount *
-                            program.blockUnlockPercentage *
-                            numUnlockTimes) /
-                        10000;
-                }
-                if (programUnlockedAmount > vestingAmount)
-                    programUnlockedAmount = vestingAmount;
-                totalUnlockedAmount += programUnlockedAmount;
+        uint256 vestingAmount = _vestingInfoOf[participant].totalAtProgram[
+            programId
+        ];
+        if (vestingAmount > 0) {
+            Program memory program = _allPrograms[programId];
+            if (lastMoment >= TGE)
+                programUnlockedAmount +=
+                    (vestingAmount * program.tgeUnlockPercentage) /
+                    10000;
+            if (lastMoment >= program.unlockMoment) {
+                uint256 numUnlockTimes = (lastMoment - program.unlockMoment) /
+                    program.unlockDistance +
+                    1;
+                programUnlockedAmount +=
+                    (vestingAmount *
+                        program.milestoneUnlockPercentage *
+                        numUnlockTimes) /
+                    10000;
             }
+            if (programUnlockedAmount > vestingAmount)
+                programUnlockedAmount = vestingAmount;
         }
-        return totalUnlockedAmount - _vestingInfoOf[participant].claimedAmount;
+        return
+            programUnlockedAmount -
+            _vestingInfoOf[participant].claimedAtProgram[programId];
+    }
+
+    function getTotalClaimableAmount(address participant)
+        external
+        view
+        returns (uint256)
+    {
+        uint256 totalClaimableAmount = 0;
+        for (uint256 i = 0; i < _allPrograms.length; i++)
+            totalClaimableAmount += getClaimableAmount(participant, i);
+        return totalClaimableAmount;
     }
 
     function setOperators(address[] memory operators, bool[] memory isOperators)
@@ -127,65 +169,83 @@ contract Vesting is Ownable, Pausable {
             _operators[operators[i]] = isOperators[i];
     }
 
-    function setBlockLength(uint256 block_) external onlyOperator {
-        _block = block_;
+    function updateMetadata(uint256 programId, string calldata newMetadata)
+        external
+        onlyOperator
+    {
+        require(programId < _allPrograms.length, "Program does not exist");
+        _allPrograms[programId].metadata = newMetadata;
     }
 
     function createPrograms(
         uint256 TGE_,
-        string[] memory names,
-        uint256[] memory starts,
-        uint256[] memory ends,
+        string[] memory metadatas,
+        uint256[] memory startRegistrations,
+        uint256[] memory endRegistrations,
         uint256[] memory initialAmounts,
         uint256[] memory tgeUnlockPercentages,
         uint256[] memory unlockMoments,
-        uint256[] memory blockUnlockPercentages
+        uint256[] memory unlockDistances,
+        uint256[] memory milestoneUnlockPercentages
     ) external onlyOperator {
-        require(names.length == starts.length, "Lengths mismatch");
-        require(names.length == ends.length, "Lengths mismatch");
-        require(names.length == initialAmounts.length, "Lengths mismatch");
         require(
-            names.length == tgeUnlockPercentages.length,
+            metadatas.length == startRegistrations.length,
             "Lengths mismatch"
         );
-        require(names.length == unlockMoments.length, "Lengths mismatch");
         require(
-            names.length == blockUnlockPercentages.length,
+            metadatas.length == endRegistrations.length,
             "Lengths mismatch"
         );
-        require(TGE_ > 0, "TGE must be real moment");
-        if (TGE == 0) TGE = TGE_;
-        for (uint256 i = 0; i < names.length; i++) {
+        require(metadatas.length == initialAmounts.length, "Lengths mismatch");
+        require(
+            metadatas.length == tgeUnlockPercentages.length,
+            "Lengths mismatch"
+        );
+        require(metadatas.length == unlockMoments.length, "Lengths mismatch");
+        require(metadatas.length == unlockDistances.length, "Lengths mismatch");
+        require(
+            metadatas.length == milestoneUnlockPercentages.length,
+            "Lengths mismatch"
+        );
+        if (TGE == 0) {
+            require(TGE_ > 0, "TGE must be real moment");
+            TGE = TGE_;
+        } else require(TGE_ == TGE, "Wrong TGE moment");
+        for (uint256 i = 0; i < metadatas.length; i++) {
             require(
                 unlockMoments[i] >= TGE,
                 "TGE must not happen after unlock moment"
             );
             require(
-                tgeUnlockPercentages[i] + blockUnlockPercentages[i] <= 10000,
+                tgeUnlockPercentages[i] + milestoneUnlockPercentages[i] <=
+                    10000,
                 "Unlock percentages cannot exceed 100%"
             );
-            uint256 id = allPrograms.length;
-            allPrograms.push(
+            uint256 id = _allPrograms.length;
+            _allPrograms.push(
                 Program(
                     id,
-                    names[i],
-                    starts[i],
-                    ends[i],
+                    metadatas[i],
+                    startRegistrations[i],
+                    endRegistrations[i],
+                    initialAmounts[i],
                     initialAmounts[i],
                     tgeUnlockPercentages[i],
                     unlockMoments[i],
-                    blockUnlockPercentages[i]
+                    unlockDistances[i],
+                    milestoneUnlockPercentages[i]
                 )
             );
             emit ProgramCreated(
                 id,
-                names[i],
-                starts[i],
-                ends[i],
+                metadatas[i],
+                startRegistrations[i],
+                endRegistrations[i],
                 initialAmounts[i],
                 tgeUnlockPercentages[i],
                 unlockMoments[i],
-                blockUnlockPercentages[i]
+                unlockDistances[i],
+                milestoneUnlockPercentages[i]
             );
         }
     }
@@ -196,16 +256,19 @@ contract Vesting is Ownable, Pausable {
         bool isInvestor
     ) external payable onlyOperator {
         require(participant != address(0), "Register the zero address");
-        require(programId < allPrograms.length, "Program does not exist");
-        Program storage program = allPrograms[programId];
-        require(block.timestamp >= program.start, "Program not available");
-        require(block.timestamp <= program.end, "Program is over");
+        require(programId < _allPrograms.length, "Program does not exist");
+        Program storage program = _allPrograms[programId];
+        require(
+            block.timestamp >= program.startRegistration,
+            "Program is not available"
+        );
+        require(block.timestamp <= program.endRegistration, "Program is over");
         require(
             msg.value <= program.availableAmount,
             "Available amount not enough"
         );
         _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
-        _vestingInfoOf[participant].atProgram[programId] += msg.value;
+        _vestingInfoOf[participant].totalAtProgram[programId] += msg.value;
         program.availableAmount -= msg.value;
         emit ParticipantRegistered(participant, programId, msg.value);
     }
@@ -225,12 +288,23 @@ contract Vesting is Ownable, Pausable {
         _vestingInfoOf[participant].removedMoment = block.timestamp;
     }
 
-    function claimTokens() external whenNotPaused {
-        uint256 claimableAmount = getClaimableAmount(msg.sender);
-        _vestingInfoOf[msg.sender].claimedAmount += claimableAmount;
+    function claimTokens(uint256 programId) public whenNotPaused {
+        uint256 claimableAmount = getClaimableAmount(msg.sender, programId);
+        _vestingInfoOf[msg.sender].totalClaimedAmount += claimableAmount;
+        _vestingInfoOf[msg.sender].claimedAtProgram[
+            programId
+        ] += claimableAmount;
         (bool success, ) = payable(msg.sender).call{value: claimableAmount}("");
         require(success, "Claim tokens failed");
-        emit ClaimSuccessful(msg.sender, claimableAmount);
+        emit ClaimSuccessful(msg.sender, programId, claimableAmount);
+    }
+
+    function claimAllTokens() external whenNotPaused nonReentrant {
+        for (uint256 i = 0; i < _allPrograms.length; i++) {
+            VestingInfo storage vestingInfo = _vestingInfoOf[msg.sender];
+            if (vestingInfo.totalAtProgram[i] > vestingInfo.claimedAtProgram[i])
+                claimTokens(i);
+        }
     }
 
     function pause() external onlyOperator {
