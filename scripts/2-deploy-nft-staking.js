@@ -16,7 +16,8 @@ async function deploy() {
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 
   // Write the result to deploy.json
-  deployInfo.jamchaintestnet[CONTRACT_NAME] = contract.address;
+  const networkName = hre.network.name;
+  deployInfo[networkName][CONTRACT_NAME] = contract.address;
   FileSystem.writeFile("deploy.json", JSON.stringify(deployInfo, null, "\t"), err => {
     if (err)
       console.log("Error when trying to write to deploy.json!", err);

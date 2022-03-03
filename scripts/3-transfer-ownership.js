@@ -11,25 +11,26 @@ async function transferOwnership() {
   const vestingNewOwner = "0xEd0bC1D60a1a58630dfab759150F9b35E2f8e6aC";
   let nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
   let vestingFactory = await hre.ethers.getContractFactory(VESTING);
+  const networkName = hre.network.name;
 
   // Set operators
   await nftStakingFactory
     .connect(deployer)
-    .attach(deployInfo.jamchaintestnet.NFTStaking)
+    .attach(deployInfo[networkName]?.NFTStaking)
     .setOperators([nftStakingNewOwner], [true]);
   await vestingFactory
     .connect(deployer)
-    .attach(deployInfo.jamchaintestnet.Vesting)
+    .attach(deployInfo[networkName]?.Vesting)
     .setOperators([vestingNewOwner], [true]);
 
   // Transfer ownership
   await nftStakingFactory
     .connect(deployer)
-    .attach(deployInfo.jamchaintestnet.NFTStaking)
+    .attach(deployInfo[networkName]?.NFTStaking)
     .transferOwnership(nftStakingNewOwner);
   await vestingFactory
     .connect(deployer)
-    .attach(deployInfo.jamchaintestnet.Vesting)
+    .attach(deployInfo[networkName]?.Vesting)
     .transferOwnership(vestingNewOwner);
 }
 
