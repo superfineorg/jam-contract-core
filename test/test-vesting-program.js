@@ -40,11 +40,11 @@ before("Deploy Vesting contract", async () => {
     "17000000000000000000",
     "102000000000000000000"
   ];
-  this.block = 3;
+  this.unlockDistance = 3;
 
   // Deploy Vesting
   this.vestingFactory = await hre.ethers.getContractFactory(VESTING);
-  this.vestingContract = await this.vestingFactory.deploy(this.block * 2);
+  this.vestingContract = await this.vestingFactory.deploy();
   await this.vestingContract.deployed();
 });
 
@@ -56,16 +56,14 @@ describe("Test Vesting contract", () => {
       .setOperators([this.operator.address], [true]);
   });
 
-  it("Set block length", async () => {
-    await this.vestingFactory
-      .connect(this.operator)
-      .attach(this.vestingContract.address)
-      .setBlockLength(this.block);
+  it("Check claimable amount", async () => {
+    let claimableAmount = await this.vestingContract.getClaimableAmount(this.participants[2].address, 3);
+    expect(claimableAmount.toString()).to.equal("0");
   });
 
-  it("Check claimable amount", async () => {
-    let claimableAmount = await this.vestingContract.getClaimableAmount(this.participants[2].address);
-    expect(claimableAmount.toString()).to.equal("0");
+  it("Check total claimable amount", async () => {
+    let totalClaimableAmount = await this.vestingContract.getTotalClaimableAmount(this.participants[3].address);
+    expect(totalClaimableAmount.toString()).to.equal("0");
   });
 
   it("Create 8 vesting programs", async () => {
@@ -78,14 +76,14 @@ describe("Test Vesting contract", () => {
       .createPrograms(
         Math.floor(Date.now() / 1000) - 1,
         [
-          "Seed Sale",
-          "Strategic Partners Sales",
-          "Community Growth",
-          "Ecosystem Growth",
-          "Team",
-          "Advisor",
-          "Treasury",
-          "IDO"
+          "https Seed Sale",
+          "https Strategic Partners Sales",
+          "https Community Growth",
+          "https Ecosystem Growth",
+          "https Team",
+          "https Advisor",
+          "https Treasury",
+          "https IDO"
         ],
         [start, start, start, start, start, start, start, start],
         [end, end, end, end, end, end, end, end],
@@ -110,25 +108,55 @@ describe("Test Vesting contract", () => {
           unlockMoment,
           unlockMoment
         ],
+        [
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance,
+          this.unlockDistance
+        ],
         [2000, 2000, 1360, 1600, 2000, 1250, 1125, 0]
       );
-    let numPrograms = await this.vestingContract.allProgramsLength();
-    let treasuryInfo = await this.vestingContract.allPrograms(6);
+    let numPrograms = await this.vestingContract.numPrograms();
+    let allPrograms = await this.vestingContract.getProgramsInfo();
     expect(numPrograms.toString()).to.equal("8");
-    expect(treasuryInfo?.name).to.equal("Treasury");
+    expect(allPrograms.length).to.equal(8);
+    expect(allPrograms[6]?.metadata).to.equal("https Treasury");
   });
 
   it("Register 8 participants", async () => {
-    for (let i = 0; i < 7; i++)
+    for (let i = 0; i < 8; i++)
       await this.vestingFactory
         .connect(this.operator)
         .attach(this.vestingContract.address)
         .registerParticipant(this.participants[i].address, i, i !== 3, { value: this.purchaseAmounts[i] });
     let vestingAmounts = [];
-    for (let i = 0; i < 7; i++)
+    for (let i = 0; i < 8; i++)
       vestingAmounts.push(await this.vestingContract.getVestingAmount(this.participants[i].address, i));
-    for (let i = 0; i < 7; i++)
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    for (let i = 0; i < 8; i++)
       expect(vestingAmounts[i].toString()).to.equal(this.purchaseAmounts[i]);
+    expect(allPrograms.length).to.equal(8);
+    expect(allPrograms[6].participants.length).to.equal(1);
+    expect(allPrograms[6].participants[0]).to.equal(this.participants[6].address);
+  });
+
+  it("Check total vesting amount", async () => {
+    let totalVestingAmount = await this.vestingContract.getTotalVestingAmount(this.participants[7].address);
+    expect(totalVestingAmount.toString()).to.equal(this.purchaseAmounts[7]);
+  });
+
+  it("Update metadata", async () => {
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .updateMetadata(5, "new https Advisor");
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms.length).to.equal(8);
+    expect(allPrograms[5].metadata).to.equal("new https Advisor");
   });
 
   it("Try to remove an investor from a program", async () => {
@@ -151,6 +179,32 @@ describe("Test Vesting contract", () => {
         .attach(this.vestingContract.address)
         .removeParticipant(this.participants[3].address, 3)
     ).to.be.revertedWith("Participant already removed");
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[3].participants.length).to.equal(0);
+  });
+
+  it("Add more participants and remove them", async () => {
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[2].address, 6, false, { value: this.purchaseAmounts[2] });
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[5].address, 6, false, { value: this.purchaseAmounts[5] });
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[2].address, 6, false, { value: this.purchaseAmounts[2] });
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[6].participants.length).to.equal(3);
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .removeParticipant(this.participants[2].address, 6);
+    allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[6].participants.length).to.equal(2);
+    expect(allPrograms[6].participants[1]).to.equal(this.participants[5].address);
   });
 
   it("Claim vesting tokens", async () => {
@@ -158,9 +212,18 @@ describe("Test Vesting contract", () => {
     await this.vestingFactory
       .connect(this.participants[0])
       .attach(this.vestingContract.address)
-      .claimTokens();
-    let claimedAmount = await this.vestingContract.getClaimedAmount(this.participants[0].address);
+      .claimTokens(0);
+    let claimedAmount = await this.vestingContract.getClaimedAmount(this.participants[0].address, 0);
     expect(claimedAmount.toString()).not.to.equal("0");
+  });
+
+  it("Claim all vesting tokens", async () => {
+    await this.vestingFactory
+      .connect(this.participants[2])
+      .attach(this.vestingContract.address)
+      .claimAllTokens();
+    let claimedAmount = await this.vestingContract.getTotalClaimedAmount(this.participants[2].address);
+    expect(claimedAmount.toString()).to.not.equal("0");
   });
 });
 

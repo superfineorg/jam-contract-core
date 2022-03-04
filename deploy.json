@@ -3,8 +3,12 @@
 		"Vesting": "0x53cCF53429AD3922aEd4890a7F70A664dD597BE5"
 	},
 	"bsctestnet": {
-		"Vesting": "0xB8eF3a4933bf06DFcF362cDD0a0e968E62cBBfC3"
+		"Vesting": "0xAc1DFb3eD72fc05Ab8746B76045dE35df9683E3B",
+		"NFTStaking": "0xa70aDe24C7207A305FbccB414E5ECCe2659bDd0f"
 	},
 	"rinkeby": {},
-	"jamchaintestnet": {}
+	"jamchaintestnet": {
+		"Vesting": "0x1F8342a3DF347a882F8Edbdb223C7110516b935f",
+		"NFTStaking": "0xFeEe415ba767c8C11F3Ceb2268703A760097565e"
+	}
 }
