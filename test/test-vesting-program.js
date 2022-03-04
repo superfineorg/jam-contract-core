@@ -140,7 +140,8 @@ describe("Test Vesting contract", () => {
     for (let i = 0; i < 8; i++)
       expect(vestingAmounts[i].toString()).to.equal(this.purchaseAmounts[i]);
     expect(allPrograms.length).to.equal(8);
-    expect(allPrograms[6].numParticipants.toString()).to.equal("1");
+    expect(allPrograms[6].participants.length).to.equal(1);
+    expect(allPrograms[6].participants[0]).to.equal(this.participants[6].address);
   });
 
   it("Check total vesting amount", async () => {
@@ -179,7 +180,31 @@ describe("Test Vesting contract", () => {
         .removeParticipant(this.participants[3].address, 3)
     ).to.be.revertedWith("Participant already removed");
     let allPrograms = await this.vestingContract.getProgramsInfo();
-    expect(allPrograms[3].numParticipants.toString()).to.equal("0");
+    expect(allPrograms[3].participants.length).to.equal(0);
+  });
+
+  it("Add more participants and remove them", async () => {
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[2].address, 6, false, { value: this.purchaseAmounts[2] });
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[5].address, 6, false, { value: this.purchaseAmounts[5] });
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .registerParticipant(this.participants[2].address, 6, false, { value: this.purchaseAmounts[2] });
+    let allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[6].participants.length).to.equal(3);
+    await this.vestingFactory
+      .connect(this.operator)
+      .attach(this.vestingContract.address)
+      .removeParticipant(this.participants[2].address, 6);
+    allPrograms = await this.vestingContract.getProgramsInfo();
+    expect(allPrograms[6].participants.length).to.equal(2);
+    expect(allPrograms[6].participants[1]).to.equal(this.participants[5].address);
   });
 
   it("Claim vesting tokens", async () => {

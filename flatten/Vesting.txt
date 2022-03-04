@@ -282,7 +282,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
         uint256 unlockMoment;
         uint256 unlockDistance;
         uint256 milestoneUnlockPercentage;
-        uint256 numParticipants;
+        address[] participants;
     }
 
     struct VestingInfo {
@@ -476,6 +476,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
             require(TGE_ > 0, "TGE must be real moment");
             TGE = TGE_;
         } else require(TGE_ == TGE, "Wrong TGE moment");
+        address[] memory participants;
         for (uint256 i = 0; i < metadatas.length; i++) {
             require(
                 unlockMoments[i] >= TGE,
@@ -499,7 +500,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
                     unlockMoments[i],
                     unlockDistances[i],
                     milestoneUnlockPercentages[i],
-                    0
+                    participants
                 )
             );
             emit ProgramCreated(
@@ -536,7 +537,13 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
         _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
         _vestingInfoOf[participant].totalAtProgram[programId] += msg.value;
         program.availableAmount -= msg.value;
-        program.numParticipants++;
+        bool addedBefore = false;
+        for (uint256 i = 0; i < program.participants.length; i++)
+            if (program.participants[i] == participant) {
+                addedBefore = true;
+                break;
+            }
+        if (!addedBefore) program.participants.push(participant);
         emit ParticipantRegistered(participant, programId, msg.value);
     }
 
@@ -553,7 +560,15 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
             "Participant already removed"
         );
         _vestingInfoOf[participant].removedMoment = block.timestamp;
-        _allPrograms[programId].numParticipants--;
+        Program storage program = _allPrograms[programId];
+        for (uint256 i = program.participants.length - 1; i >= 0; i--) {
+            if (program.participants[i] == participant) {
+                uint256 length = program.participants.length;
+                program.participants[i] = program.participants[length - 1];
+                program.participants.pop();
+            }
+            if (i == 0) break;
+        }
     }
 
     function claimTokens(uint256 programId) public whenNotPaused {
