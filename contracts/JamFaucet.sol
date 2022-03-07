@@ -37,7 +37,7 @@ contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
     {
         require(
             address(this).balance > faucetAmount.mul(recipients.length),
-            "Not enough balance"
+            "JamFaucet: not enough balance"
         );
         for (uint256 i = 0; i < recipients.length; i++)
             if (block.timestamp > lastFaucet[recipients[i]] + faucetInterval) {
@@ -45,7 +45,7 @@ contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
                 (bool success, ) = payable(recipients[i]).call{
                     value: faucetAmount
                 }("");
-                require(success, "Faucet failed");
+                require(success, "JamFaucet: faucet failed");
             }
     }
 

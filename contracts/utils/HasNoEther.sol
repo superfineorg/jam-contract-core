@@ -12,13 +12,13 @@ contract HasNoEther is Ownable {
      * we could use assembly to access msg.value.
      */
     constructor() payable {
-        require(msg.value == 0);
+        require(msg.value == 0, "HasNoEther: cannot send ETH when deploying");
     }
 
     function reclaimEther() external onlyOwner {
         (bool success, ) = payable(owner()).call{value: address(this).balance}(
             ""
         );
-        require(success, "Transfer failed.");
+        require(success, "HasNoEther: transfer failed");
     }
 }

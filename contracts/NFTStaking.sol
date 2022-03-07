@@ -66,7 +66,7 @@ contract NFTStaking is
     }
 
     modifier onlyOperator() {
-        require(_operators[msg.sender], "Caller is not operator");
+        require(_operators[msg.sender], "NFTStaking: caller is not operator");
         _;
     }
 
@@ -121,7 +121,10 @@ contract NFTStaking is
         external
         onlyOwner
     {
-        require(operators.length == isOperators.length, "Lengths mismatch");
+        require(
+            operators.length == isOperators.length,
+            "NFTStaking: lengths mismatch"
+        );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
     }
@@ -139,8 +142,14 @@ contract NFTStaking is
         NFTType[] calldata types,
         bool[] calldata statuses
     ) external onlyOperator {
-        require(nftAddresses.length == types.length, "Lengths mismatch");
-        require(nftAddresses.length == statuses.length, "Lengths mismatch");
+        require(
+            nftAddresses.length == types.length,
+            "NFTStaking: lengths mismatch"
+        );
+        require(
+            nftAddresses.length == statuses.length,
+            "NFTStaking: lengths mismatch"
+        );
         for (uint256 i = 0; i < nftAddresses.length; i++) {
             _typeOf[nftAddresses[i]] = types[i];
             _isNFTWhitelisted[nftAddresses[i]] = statuses[i];
@@ -161,14 +170,17 @@ contract NFTStaking is
         uint256 tokenId,
         uint256 quantity
     ) external whenNotPaused nonReentrant {
-        require(_isNFTWhitelisted[nftAddress], "This NFT is not supported");
-        require(quantity > 0, "Stake nothing");
+        require(
+            _isNFTWhitelisted[nftAddress],
+            "NFTStaking: this NFT is not supported"
+        );
+        require(quantity > 0, "NFTStaking: stake nothing");
         _settle(msg.sender);
         StakingInfo storage stakingInfo = _stakingInfoOf[msg.sender];
         if (_typeOf[nftAddress] == NFTType.ERC721) {
             require(
                 quantity == 1,
-                "Cannot stake more than 1 ERC721 NFT at a time"
+                "NFTStaking: cannot stake more than 1 ERC721 NFT at a time"
             );
             IERC721(nftAddress).safeTransferFrom(
                 msg.sender,
@@ -202,24 +214,27 @@ contract NFTStaking is
         uint256 tokenId,
         uint256 quantity
     ) external whenNotPaused nonReentrant {
-        require(_isNFTWhitelisted[nftAddress], "This NFT is not supported");
-        require(quantity > 0, "Unstake nothing");
+        require(
+            _isNFTWhitelisted[nftAddress],
+            "NFTStaking: this NFT is not supported"
+        );
+        require(quantity > 0, "NFTStaking: unstake nothing");
         _settle(msg.sender);
         StakingInfo storage stakingInfo = _stakingInfoOf[msg.sender];
         if (_typeOf[nftAddress] == NFTType.ERC721) {
             require(
                 quantity == 1,
-                "Cannot unstake more than 1 ERC721 NFT at a time"
+                "NFTStaking: cannot unstake more than 1 ERC721 NFT at a time"
             );
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] == 1,
-                "NFT not found"
+                "NFTStaking: NFT not found"
             );
             require(
                 block.timestamp >=
                     stakingInfo.stakingMomentOf[nftAddress][tokenId] +
                         lockDuration,
-                "NFT not unlocked yet"
+                "NFTStaking: NFT not unlocked yet"
             );
             IERC721(nftAddress).safeTransferFrom(
                 address(this),
@@ -244,13 +259,13 @@ contract NFTStaking is
         } else {
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] >= quantity,
-                "Not enough NFTs to unstake"
+                "NFTStaking: not enough NFTs to unstake"
             );
             require(
                 block.timestamp >=
                     stakingInfo.stakingMomentOf[nftAddress][tokenId] +
                         lockDuration,
-                "NFT not unlocked yet"
+                "NFTStaking: NFT not unlocked yet"
             );
             IERC1155(nftAddress).safeTransferFrom(
                 address(this),
@@ -295,7 +310,7 @@ contract NFTStaking is
         if (rewardAmount == 0) return;
         _stakingInfoOf[participant].lastClaimMoment = block.timestamp;
         (bool success, ) = payable(participant).call{value: rewardAmount}("");
-        require(success, "Settle failed");
+        require(success, "NFTStaking: settle failed");
     }
 
     function pause() external onlyOperator {
@@ -313,7 +328,7 @@ contract NFTStaking is
     {
         uint256 amount = address(this).balance;
         (bool success, ) = recipient.call{value: amount}("");
-        require(success, "Emergency withdraw failed");
+        require(success, "NFTStaking: emergency withdraw failed");
         emit EmergencyWithdrawn(recipient, amount);
     }
 }

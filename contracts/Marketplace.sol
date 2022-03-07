@@ -62,22 +62,34 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     // Modifiers to check that inputs can be safely stored with a certain
     // number of bits. We use constants and multiple modifiers to save gas.
     modifier canBeStoredWith64Bits(uint256 _value) {
-        require(_value <= type(uint64).max);
+        require(
+            _value <= type(uint64).max,
+            "Marketplace: cannot be stored with 64 bits"
+        );
         _;
     }
 
     modifier canBeStoredWith128Bits(uint256 _value) {
-        require(_value < type(uint128).max);
+        require(
+            _value < type(uint128).max,
+            "Marketplace: cannot be stored with 128 bits"
+        );
         _;
     }
 
     constructor(uint256 _ownerCut) {
-        require(_ownerCut <= 10000);
+        require(
+            _ownerCut <= 10000,
+            "Marketplace: owner cut cannot exceed 100%"
+        );
         ownerCut = _ownerCut;
     }
 
     function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
-        require(_ownerCut <= 10000, "Owner cut cannot exceed 100%");
+        require(
+            _ownerCut <= 10000,
+            "Marketplace: owner cut cannot exceed 100%"
+        );
         ownerCut = _ownerCut;
     }
 
@@ -212,7 +224,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         )
     {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction));
+        require(_isOnAuction(_auction), "Marketplace: not on auction");
         return (
             _auction.seller,
             _auction.price,
@@ -254,7 +266,10 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         address _erc20Address
     ) external whenNotPaused canBeStoredWith128Bits(_price) {
         address _seller = msg.sender;
-        require(_owns(_nftAddress, _seller, _tokenId));
+        require(
+            _owns(_nftAddress, _seller, _tokenId),
+            "Marketplace: only owner can create auction"
+        );
         _escrow(_nftAddress, _seller, _tokenId);
 
         Auction memory _auction = Auction(
@@ -273,8 +288,11 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     /// @param _tokenId - ID of the NFT on auction to cancel.
     function cancelAuction(address _nftAddress, uint256 _tokenId) external {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction));
-        require(msg.sender == _auction.seller);
+        require(_isOnAuction(_auction), "Marketplace: not on auction");
+        require(
+            msg.sender == _auction.seller,
+            "Marketplace: only seller can cancel auction"
+        );
         _cancelAuction(_nftAddress, _tokenId, _auction.seller);
     }
 
@@ -289,7 +307,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         onlyOwner
     {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction));
+        require(_isOnAuction(_auction), "Marketplace: not on auction");
         _cancelAuction(_nftAddress, _tokenId, _auction.seller);
     }
 
@@ -301,7 +319,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         Auction memory auction = auctions[_nftAddress][_tokenId];
         require(
             auction.erc20Address == address(0),
-            "Cannot buy this item with native token"
+            "Marketplace: cannot buy this item with native token"
         );
         // _bid will throw if the bid or funds transfer fails
         _buy(_nftAddress, _tokenId, msg.value);
@@ -316,11 +334,11 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
         require(
             _auction.erc20Address != address(0),
-            "Can only be paid with native token"
+            "Marketplace: can only be paid with native token"
         );
-        require(_isOnAuction(_auction));
+        require(_isOnAuction(_auction), "Marketplace: not on auction");
         uint256 _price = _auction.price;
-        require(_price <= _maxPrice, "Item price is too high");
+        require(_price <= _maxPrice, "Marketplace: item price is too high");
         uint256 tokenId = _tokenId;
         address _erc20Address = _auction.erc20Address;
 
@@ -328,7 +346,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
 
         uint256 _allowance = erc20Contract.allowance(msg.sender, address(this));
 
-        require(_allowance >= _price);
+        require(_allowance >= _price, "Marketplace: not enough allowance");
 
         address _seller = _auction.seller;
         uint256 _auctioneerCut = _computeCut(_price);
@@ -338,7 +356,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
             address(this),
             _price
         );
-        require(success, "Not enough balance");
+        require(success, "Marketplace: not enough balance");
         erc20Contract.transfer(_seller, _sellerProceeds);
         if (_supportIERC2981(_nftAddress)) {
             IERC2981 royaltyContract = _getERC2981(_nftAddress);
@@ -366,10 +384,13 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         // Get a reference to the auction struct
         Auction storage _auction = auctions[_nftAddress][_tokenId];
 
-        require(_isOnAuction(_auction));
+        require(_isOnAuction(_auction), "Marketplace: not on auction");
         uint256 _price = _auction.price;
 
-        require(_bidAmount >= _price);
+        require(
+            _bidAmount >= _price,
+            "Marketplace: bid amount cannot be less than price"
+        );
 
         address _seller = _auction.seller;
 
@@ -418,10 +439,10 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         uint256 lastWithdraw = lastWithdraws[msg.sender][_erc20Address];
         require(
             lastWithdraw + withdrawDuration <= block.timestamp,
-            "Only withdraw after 14 days before previous withdraw"
+            "Marketplace: only withdraw after 14 days before previous withdraw"
         );
         uint256 royaltyCut = royaltyCuts[msg.sender][_erc20Address];
-        require(royaltyCut > 0, "No royalty cut to withdraw");
+        require(royaltyCut > 0, "Marketplace: no royalty cut to withdraw");
         royaltyCuts[msg.sender][_erc20Address] = 0;
         _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address].sub(
             royaltyCut
@@ -432,7 +453,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
         } else {
             IERC20 erc20Contract = _getERC20Contract(_erc20Address);
             bool success = erc20Contract.transfer(msg.sender, royaltyCut);
-            require(success, "Transfer failed");
+            require(success, "Marketplace: transfer failed");
         }
     }
 
@@ -440,7 +461,7 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
     //     (bool success, ) = payable(owner()).call{
     //         value: address(this).balance.sub(_totalRoyaltyCut[address(0)])
     //     }("");
-    //     require(success, "Reclaim Ether failed");
+    //     require(success, "Marketplace: reclaim Ether failed");
     // }
 
     function reclaimERC20(address _erc20Address) external onlyOwner {

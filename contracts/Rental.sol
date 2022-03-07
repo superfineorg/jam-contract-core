@@ -39,7 +39,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
     /* ======== Config Rental ======== */
 
     function setOwnerCut(uint256 _ownerCut) external onlyOwner {
-        require(_ownerCut <= 10000, "Owner cut cannot exceed 100%");
+        require(_ownerCut <= 10000, "Rental: owner cut cannot exceed 100%");
         ownerCut = _ownerCut;
     }
 
@@ -130,7 +130,6 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 addingBalance,
         string memory receiptId
     ) public override onlyNewReceiptId(receiptId) onlyBackend returns (bool) {
-        require(addingBalance > 0);
         // TODO: need convert addingBalance from usdt to jam
         IOracle or = _getOracleContract();
         uint256 jamRate = or.GetRate(address(0));
@@ -154,23 +153,23 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount
     ) external payable override returns (bool) {
         if (paidToken == address(0)) {
-            require(msg.value >= amount, "not enough balance");
+            require(msg.value >= amount, "Rental: not enough balance");
         }
         IOracle or = _getOracleContract();
         uint256 tokenRate = or.GetRate(paidToken);
-        require(tokenRate > 0, "paid token is not support");
+        require(tokenRate > 0, "Rental: paid token is not support");
         uint256 totalBalanceUSD = amount / tokenRate;
         uint256 pricingPerDayUSD = viewNFTPricing(
             chainId,
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "nft is not public for rent");
+        require(pricingPerDayUSD > 0, "Rental: nft is not public for rent");
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
         require(
             totalBalanceUSD * 10000 >= billAmount * (10000 - slippageTolerance),
-            "out of slippage tolerance"
+            "Rental: out of slippage tolerance"
         );
         if (paidToken != address(0)) {
             // Transfer ERC20
@@ -272,7 +271,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "nft is not public for rent");
+        require(pricingPerDayUSD > 0, "Rental: nft is not public for rent");
 
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
@@ -311,19 +310,22 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount = ownerProfit[msg.sender];
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         ownerProfit[msg.sender] = ownerProfit[msg.sender] - amount;
-        require(success, "Transfer failed.");
+        require(success, "Rental: transfer failed.");
     }
 
     /* ======== End User Query function ======== */
 
     /* ======== Modfier ========= */
     modifier onlyBackend() {
-        require(backendAddr == msg.sender, "only backend call");
+        require(backendAddr == msg.sender, "Rental: only backend call");
         _;
     }
 
     modifier onlyNewReceiptId(string memory receiptId) {
-        require(receiptLog[receiptId] == 0, "only new receiptId accepted");
+        require(
+            receiptLog[receiptId] == 0,
+            "Rental: only new receiptId accepted"
+        );
         _;
     }
 }

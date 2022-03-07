@@ -112,7 +112,7 @@ contract StakingRewards is
         whenNotPaused
         updateReward(msg.sender)
     {
-        require(amount > 0, "Cannot stake 0");
+        require(amount > 0, "StakingRewards: cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
@@ -124,7 +124,7 @@ contract StakingRewards is
         nonReentrant
         updateReward(msg.sender)
     {
-        require(amount > 0, "Cannot withdraw 0");
+        require(amount > 0, "StakingRewards: cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
         stakingToken.safeTransfer(msg.sender, amount);
@@ -166,7 +166,7 @@ contract StakingRewards is
         uint256 balance = rewardsToken.balanceOf(address(this));
         require(
             rewardRate <= balance.div(rewardsDuration),
-            "Provided reward too high"
+            "StakingRewards: provided reward too high"
         );
 
         lastUpdateTime = block.timestamp;
@@ -181,7 +181,7 @@ contract StakingRewards is
     {
         require(
             tokenAddress != address(stakingToken),
-            "Cannot withdraw the staking token"
+            "StakingRewards: cannot withdraw the staking token"
         );
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
@@ -190,7 +190,7 @@ contract StakingRewards is
     function setRewardsDuration(uint256 _rewardsDuration) external onlyOwner {
         require(
             block.timestamp > periodFinish,
-            "Previous rewards period must be complete before changing the duration for the new period"
+            "StakingRewards: previous rewards period must be complete before changing the duration for the new period"
         );
         rewardsDuration = _rewardsDuration;
         emit RewardsDurationUpdated(rewardsDuration);
