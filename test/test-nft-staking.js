@@ -112,7 +112,7 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .stake(this.nft721Contract.address, 1, 1);
+      .stake([this.nft721Contract.address], [1], [1]);
     let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
     let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
       this.participant.address,
@@ -147,13 +147,13 @@ describe("Test NFT staking program", () => {
       this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
-        .unstake(this.nft721Contract.address, 1, 1)
+        .unstake([this.nft721Contract.address], [1], [1])
     ).to.be.revertedWith("NFT not unlocked yet");
     await sleep(6000);
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .unstake(this.nft721Contract.address, 1, 1);
+      .unstake([this.nft721Contract.address], [1], [1]);
     let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
     let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
       this.participant.address,
@@ -187,7 +187,7 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .stake(this.nft1155Contract.address, 1, 15);
+      .stake([this.nft1155Contract.address], [1], [15]);
     let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
     let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
       this.participant.address,
@@ -215,13 +215,13 @@ describe("Test NFT staking program", () => {
       this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
-        .unstake(this.nft1155Contract.address, 1, 8)
+        .unstake([this.nft1155Contract.address], [1], [8])
     ).to.be.revertedWith("NFT not unlocked yet");
     await sleep(6000);
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .unstake(this.nft1155Contract.address, 1, 8);
+      .unstake([this.nft1155Contract.address], [1], [8]);
     let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
     let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
       this.participant.address,
