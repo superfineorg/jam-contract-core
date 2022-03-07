@@ -364,6 +364,10 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
                 tokenId,
                 _auctioneerCut
             );
+            require(
+                amount < _auctioneerCut,
+                "Marketplace: royalty amount must be less than auctioneer cut"
+            );
             _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address]
                 .add(amount);
             royaltyCuts[firstOwner][_erc20Address] = royaltyCuts[firstOwner][
@@ -407,6 +411,10 @@ contract Marketplace is HasNoEther, Pausable, ReentrancyGuard {
                 IERC2981 royaltyContract = _getERC2981(_nftAddress);
                 (address firstOwner, uint256 amount) = royaltyContract
                     .royaltyInfo(_tokenId, _auctioneerCut);
+                require(
+                    amount < _auctioneerCut,
+                    "Marketplace: royalty amount must be less than auctioneer cut"
+                );
                 _totalRoyaltyCut[address(0)] = _totalRoyaltyCut[address(0)].add(
                     amount
                 );
