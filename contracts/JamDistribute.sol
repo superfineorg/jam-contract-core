@@ -54,7 +54,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     {
         require(
             addrs.length == amount.length,
-            "addrs and amount does not same length"
+            "JamDistribute: addrs and amount does not same length"
         );
         uint256 addedRewardAmount = _calSumAmount(amount);
         uint256 today = DateTime.toDateUnit(block.timestamp);
@@ -107,7 +107,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
             (bool success, ) = payable(msg.sender).call{value: rewardAmount}(
                 ""
             );
-            require(success, "Transfer failed.");
+            require(success, "JamDistribute: transfer failed.");
         } else {
             IERC20(tokenAddr).safeTransfer(msg.sender, rewardAmount);
         }
@@ -138,13 +138,13 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     modifier onlyDistributor(address _token) {
         require(
             allowedDistributors[_token][msg.sender],
-            "only distributor can take this action"
+            "JamDistribute: only distributor can take this action"
         );
         _;
     }
 
     modifier onlySupportedToken(address _token) {
-        require(supportedToken[_token], "unsupported token");
+        require(supportedToken[_token], "JamDistribute: unsupported token");
         _;
     }
 
@@ -158,7 +158,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
         require(
             totalRewards[tokenAddr].add(total) <= thisAccountBalance,
-            "balance not enough"
+            "JamDistribute: balance not enough"
         );
         _;
     }
@@ -166,7 +166,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     modifier haveReward(address tokenAddr) {
         require(
             rewards[tokenAddr][msg.sender] > 0,
-            "you don't have any reward"
+            "JamDistribute: you don't have any reward"
         );
         _;
     }

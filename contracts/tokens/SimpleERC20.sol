@@ -50,7 +50,10 @@ contract SimpleERC20 is ERC20, ERC20Burnable, Ownable {
         public
         onlyOwner
     {
-        require(accounts.length == amounts.length, "Lengths mismatch");
+        require(
+            accounts.length == amounts.length,
+            "SimpleERC20: lengths mismatch"
+        );
         for (uint256 i = 0; i < accounts.length; i++)
             if (amounts[i] > 0) _mint(accounts[i], amounts[i]);
     }
@@ -66,7 +69,7 @@ contract SimpleERC20 is ERC20, ERC20Burnable, Ownable {
             // When minting tokens
             require(
                 totalMinted().add(amount) <= cap(),
-                "ERC20Capped: cap exceeded"
+                "SimpleERC20: cap exceeded"
             );
         }
     }

@@ -95,7 +95,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     {
         require(
             tokenAddrs.length == rate.length,
-            "addrs and amount does not same length"
+            "JamLicense: addrs and amount does not same length"
         );
         for (uint256 i = 0; i < tokenAddrs.length; i++) {
             tokenRate[tokenAddrs[i]] = rate[i];
@@ -195,7 +195,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
             uint256 diff = billAmount - amount;
             require(
                 diff.mul(10000) < billAmount.mul(slippageTolerance),
-                "JAM_LICENSE: out of slippage tolerance"
+                "JamLicense: out of slippage tolerance"
             );
             chargeAmount = amount;
         }
@@ -208,7 +208,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
                 billAmount
             );
         } else {
-            require(msg.value >= billAmount, "Not enough balance");
+            require(msg.value >= billAmount, "JamLicense: not enough balance");
             if (msg.value > billAmount) {
                 uint256 _billExceed = msg.value - billAmount;
                 payable(msg.sender).transfer(_billExceed);
@@ -230,15 +230,18 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
 
     /* ======== Modfier ========= */
     modifier validNumPurchaseNodeLicense(uint256 numNodeLicense) {
-        require(numNodeLicense > 0, "node buy must be greather than 0");
+        require(
+            numNodeLicense > 0,
+            "JamLicense: node buy must be greather than 0"
+        );
         require(
             numNodeLicense <= maxNodeBuyPerTransaction,
-            "too many node buying"
+            "JamLicense: too many node buying"
         );
         _;
     }
     modifier validCurrency(address paidToken) {
-        require(tokenRate[paidToken] > 0, "currency not support");
+        require(tokenRate[paidToken] > 0, "JamLicense: currency not support");
         _;
     }
 

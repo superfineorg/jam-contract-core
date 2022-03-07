@@ -21,7 +21,7 @@ contract SimpleOracle is IOracle, Ownable, ReentrancyGuard {
     {
         require(
             tokenAddrs.length == rate.length,
-            "addrs and amount does not same length"
+            "SimpleOracle: addrs and amount does not same length"
         );
         for (uint256 i = 0; i < tokenAddrs.length; i++) {
             tokenRate[tokenAddrs[i]] = rate[i];
