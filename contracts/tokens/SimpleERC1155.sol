@@ -17,5 +17,6 @@ contract SimpleERC1155 is ERC1155, Ownable {
     function mintTo(address recipient, uint256 amount) external onlyOwner {
         uint256 tokenId = nextTokenId.current();
         _mint(recipient, tokenId, amount, "");
+        nextTokenId.increment();
     }
 }

@@ -45,7 +45,7 @@ describe("Test NFT staking program", () => {
   it("Transfer some initial fund to the contract", async () => {
     await this.deployer.sendTransaction({
       to: this.nftStakingContract.address,
-      value: hre.ethers.utils.parseEther("1.0")
+      value: hre.ethers.utils.parseEther("80")
     });
   });
 
@@ -53,9 +53,9 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
-      .setLockDuration(5);
+      .setLockDuration(8);
     let lockDuration = await this.nftStakingContract.lockDuration();
-    expect(lockDuration.toString()).to.equal("5");
+    expect(lockDuration.toString()).to.equal("8");
   });
 
   it("Set total reward per day", async () => {
@@ -67,40 +67,66 @@ describe("Test NFT staking program", () => {
     expect(rewardPerDay.toString()).to.equal("100000");
   });
 
-  it("Whitelist the previously deployed NFT721 token", async () => {
+  it("Whitelist the previously deployed ERC721 and ERC1155 tokens", async () => {
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT(
-        [this.nft721Contract.address, this.nft1155Contract.address],
-        [0, 1],
-        [true, true]
+        [
+          this.nft721Contract.address,
+          this.nft1155Contract.address,
+          this.nft1155Contract.address,
+          this.nft1155Contract.address
+        ],
+        [0, 1, 1, 1],
+        [0, 1, 3, 4]
       );
-    let nft721Whitelist = await this.nftStakingContract.nftWhitelist(0);
-    let nft1155Whitelist = await this.nftStakingContract.nftWhitelist(1);
-    expect(nft721Whitelist).to.equal(this.nft721Contract.address);
-    expect(nft1155Whitelist).to.equal(this.nft1155Contract.address);
   });
 
-  it("Remove this NFT721 token from the whitelist", async () => {
+  it("Whitelist more NFT1155 token ids", async () => {
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
-      .whitelistNFT([this.nft721Contract.address], [0], [false]);
-    let nft1155Whitelist = await this.nftStakingContract.nftWhitelist(0);
-    expect(nft1155Whitelist).to.equal(this.nft1155Contract.address);
-    await expect(this.nftStakingContract.nftWhitelist(1)).to.be.reverted;
-    await this.nftStakingFactory
-      .connect(this.operator)
-      .attach(this.nftStakingContract.address)
-      .whitelistNFT([this.nft721Contract.address], [0], [true]);    // Whitelist it again for testing later
+      .whitelistNFT([this.nft1155Contract.address], [1], [6]);
   });
 
-  it("Stake a new NFT721", async () => {
+  it("Mint some ERC721 and ERC1155 NFTs to a participant", async () => {
     await this.nft721Factory
       .connect(this.deployer)
       .attach(this.nft721Contract.address)
-      .awardItem(this.participant.address);
+      .awardItem(this.participant.address);   // id = 1
+    await this.nft721Factory
+      .connect(this.deployer)
+      .attach(this.nft721Contract.address)
+      .awardItem(this.participant.address);   // id = 2
+    await this.nft1155Factory
+      .connect(this.deployer)
+      .attach(this.nft1155Contract.address)
+      .mintTo(this.participant.address, 20);  // id = 1
+    await this.nft1155Factory
+      .connect(this.deployer)
+      .attach(this.nft1155Contract.address)
+      .mintTo(this.participant.address, 30);  // id = 2
+    let unstakedNFTs = await this.nftStakingContract.getUnstakedNFTs(this.participant.address);
+    expect(unstakedNFTs.length).to.equal(3);
+    expect(unstakedNFTs[0].nftType).to.equal(0);
+    expect(unstakedNFTs[0].nftAddress).to.equal(this.nft721Contract.address);
+    expect(unstakedNFTs[0].tokenId.toString()).to.equal("1");
+    expect(unstakedNFTs[0].quantity.toString()).to.equal("1");
+    expect(unstakedNFTs[0].stakingMoment.toString()).to.equal("0");
+    expect(unstakedNFTs[1].nftType).to.equal(0);
+    expect(unstakedNFTs[1].nftAddress).to.equal(this.nft721Contract.address);
+    expect(unstakedNFTs[1].tokenId.toString()).to.equal("2");
+    expect(unstakedNFTs[1].quantity.toString()).to.equal("1");
+    expect(unstakedNFTs[1].stakingMoment.toString()).to.equal("0");
+    expect(unstakedNFTs[2].nftType).to.equal(1);
+    expect(unstakedNFTs[2].nftAddress).to.equal(this.nft1155Contract.address);
+    expect(unstakedNFTs[2].tokenId.toString()).to.equal("1");
+    expect(unstakedNFTs[2].quantity.toString()).to.equal("20");
+    expect(unstakedNFTs[2].stakingMoment.toString()).to.equal("0");
+  });
+
+  it("Stake a new ERC721 NFT", async () => {
     await this.nft721Factory
       .connect(this.participant)
       .attach(this.nft721Contract.address)
@@ -109,30 +135,23 @@ describe("Test NFT staking program", () => {
     let spender = await this.nft721Contract.getApproved(1);
     expect(owner).to.equal(this.participant.address);
     expect(spender).to.equal(this.nftStakingContract.address);
+    await expect(
+      this.nftStakingFactory
+        .connect(this.participant)
+        .attach(this.nftStakingContract.address)
+        .stake([this.nft721Contract.address], [1], [3])
+    ).to.be.revertedWith("NFTStaking: cannot stake more than 1 ERC721 NFT at a time");
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .stake(this.nft721Contract.address, 1, 1);
-    let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
-    let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
-      this.participant.address,
-      this.nft721Contract.address
-    );
-    let stakedQuantity = await this.nftStakingContract.getStakedQuantity(
-      this.participant.address,
-      this.nft721Contract.address,
-      1
-    );
-    let stakingMoment = await this.nftStakingContract.getStakingMoment(
-      this.participant.address,
-      this.nft721Contract.address,
-      1
-    );
-    expect(numStakedNFTs.toString()).to.equal("1");
-    expect(stakedNFTTokenIds.length).to.equal(1);
-    expect(stakedNFTTokenIds[0].toString()).to.equal("1");
-    expect(stakedQuantity.toString()).to.equal("1");
-    expect(stakingMoment.toString()).not.to.equal("0");
+      .stake([this.nft721Contract.address], [1], [1]);
+    let stakedNFTs = await this.nftStakingContract.getStakedNFTs(this.participant.address);
+    expect(stakedNFTs.length).to.equal(1);
+    expect(stakedNFTs[0].nftType).to.equal(0);
+    expect(stakedNFTs[0].nftAddress).to.equal(this.nft721Contract.address);
+    expect(stakedNFTs[0].tokenId.toString()).to.equal("1");
+    expect(stakedNFTs[0].quantity.toString()).to.equal("1");
+    expect(stakedNFTs[0].stakingMoment.toString()).not.to.equal("0");
   });
 
   it("Claim the reward", async () => {
@@ -142,44 +161,7 @@ describe("Test NFT staking program", () => {
       .claimReward();
   });
 
-  it("Unstake the staked NFT721 above", async () => {
-    await expect(
-      this.nftStakingFactory
-        .connect(this.participant)
-        .attach(this.nftStakingContract.address)
-        .unstake(this.nft721Contract.address, 1, 1)
-    ).to.be.revertedWith("NFT not unlocked yet");
-    await sleep(6000);
-    await this.nftStakingFactory
-      .connect(this.participant)
-      .attach(this.nftStakingContract.address)
-      .unstake(this.nft721Contract.address, 1, 1);
-    let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
-    let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
-      this.participant.address,
-      this.nft721Contract.address
-    );
-    let stakedQuantity = await this.nftStakingContract.getStakedQuantity(
-      this.participant.address,
-      this.nft721Contract.address,
-      1
-    );
-    let stakingMoment = await this.nftStakingContract.getStakingMoment(
-      this.participant.address,
-      this.nft721Contract.address,
-      1
-    );
-    expect(numStakedNFTs.toString()).to.equal("0");
-    expect(stakedNFTTokenIds.length).to.equal(0);
-    expect(stakedQuantity.toString()).to.equal("0");
-    expect(stakingMoment.toString()).to.equal("0");
-  });
-
-  it("Stake new NFT1155s", async () => {
-    await this.nft1155Factory
-      .connect(this.deployer)
-      .attach(this.nft1155Contract.address)
-      .mintTo(this.participant.address, 20);
+  it("Stake some new ERC1155 NFTs", async () => {
     await this.nft1155Factory
       .connect(this.participant)
       .attach(this.nft1155Contract.address)
@@ -187,60 +169,58 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .stake(this.nft1155Contract.address, 1, 15);
-    let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
-    let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
-      this.participant.address,
-      this.nft1155Contract.address
-    );
-    let stakedQuantity = await this.nftStakingContract.getStakedQuantity(
-      this.participant.address,
-      this.nft1155Contract.address,
-      1
-    );
-    let stakingMoment = await this.nftStakingContract.getStakingMoment(
-      this.participant.address,
-      this.nft1155Contract.address,
-      1
-    );
-    expect(numStakedNFTs.toString()).to.equal("15");
-    expect(stakedNFTTokenIds.length).to.equal(1);
-    expect(stakedNFTTokenIds[0].toString()).to.equal("1");
-    expect(stakedQuantity.toString()).to.equal("15");
-    expect(stakingMoment.toString()).not.to.equal("0");
+      .stake([this.nft1155Contract.address], [1], [15]);
+    let stakedNFTs = await this.nftStakingContract.getStakedNFTs(this.participant.address);
+    expect(stakedNFTs.length).to.equal(2);
+    expect(stakedNFTs[1].nftType).to.equal(1);
+    expect(stakedNFTs[1].nftAddress).to.equal(this.nft1155Contract.address);
+    expect(stakedNFTs[1].tokenId.toString()).to.equal("1");
+    expect(stakedNFTs[1].quantity.toString()).to.equal("15");
+    expect(stakedNFTs[1].stakingMoment.toString()).not.to.equal("0");
   });
 
-  it("Unstake the staked NFT1155s above", async () => {
+  it("Stake some non-supported ERC1155 NFTs", async () => {
     await expect(
       this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
-        .unstake(this.nft1155Contract.address, 1, 8)
-    ).to.be.revertedWith("NFT not unlocked yet");
-    await sleep(6000);
+        .stake([this.nft1155Contract.address], [2], [25])
+    ).to.be.revertedWith("NFTStaking: this NFT is not supported");
+  });
+
+  it("Unstake the staked ERC721 NFT above", async () => {
+    await expect(
+      this.nftStakingFactory
+        .connect(this.participant)
+        .attach(this.nftStakingContract.address)
+        .unstake([this.nft721Contract.address], [1], [1])
+    ).to.be.revertedWith("NFTStaking: NFT not unlocked yet");
+    await sleep(9000);
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
-      .unstake(this.nft1155Contract.address, 1, 8);
-    let numStakedNFTs = await this.nftStakingContract.getNumStakedNFTs(this.participant.address);
-    let stakedNFTTokenIds = await this.nftStakingContract.getStakedNFTTokenIds(
-      this.participant.address,
-      this.nft1155Contract.address
-    );
-    let stakedQuantity = await this.nftStakingContract.getStakedQuantity(
-      this.participant.address,
-      this.nft1155Contract.address,
-      1
-    );
-    let stakingMoment = await this.nftStakingContract.getStakingMoment(
-      this.participant.address,
-      this.nft1155Contract.address,
-      1
-    );
-    expect(numStakedNFTs.toString()).to.equal("7");
-    expect(stakedNFTTokenIds.length).to.equal(1);
-    expect(stakedQuantity.toString()).to.equal("7");
-    expect(stakingMoment.toString()).not.to.equal("0");
+      .unstake([this.nft721Contract.address], [1], [1]);
+    let stakedNFTs = await this.nftStakingContract.getStakedNFTs(this.participant.address);
+    expect(stakedNFTs.length).to.equal(1);
+    expect(stakedNFTs[0].nftType).to.equal(1);
+    expect(stakedNFTs[0].nftAddress).to.equal(this.nft1155Contract.address);
+    expect(stakedNFTs[0].tokenId.toString()).to.equal("1");
+    expect(stakedNFTs[0].quantity.toString()).to.equal("15");
+    expect(stakedNFTs[0].stakingMoment.toString()).not.to.equal("0");
+  });
+
+  it("Unstake the staked ERC1155 NFTs above", async () => {
+    await this.nftStakingFactory
+      .connect(this.participant)
+      .attach(this.nftStakingContract.address)
+      .unstake([this.nft1155Contract.address], [1], [8]);
+    let stakedNFTs = await this.nftStakingContract.getStakedNFTs(this.participant.address);
+    expect(stakedNFTs.length).to.equal(1);
+    expect(stakedNFTs[0].nftType).to.equal(1);
+    expect(stakedNFTs[0].nftAddress).to.equal(this.nft1155Contract.address);
+    expect(stakedNFTs[0].tokenId.toString()).to.equal("1");
+    expect(stakedNFTs[0].quantity.toString()).to.equal("7");
+    expect(stakedNFTs[0].stakingMoment.toString()).not.to.equal("0");
   });
 
   it("Pause the contract", async () => {
