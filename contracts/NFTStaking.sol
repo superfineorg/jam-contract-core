@@ -185,9 +185,13 @@ contract NFTStaking is
             uint256[] memory whitelistedTokenIds = _erc1155TokenIdWhitelist[
                 nftAddress
             ];
-            for (uint256 id = 0; id < whitelistedTokenIds.length; id++)
-                if (IERC1155(nftAddress).balanceOf(participant, id) > 0)
-                    numUnstakedNFTs++;
+            for (uint256 i = 0; i < whitelistedTokenIds.length; i++)
+                if (
+                    IERC1155(nftAddress).balanceOf(
+                        participant,
+                        whitelistedTokenIds[i]
+                    ) > 0
+                ) numUnstakedNFTs++;
         }
 
         NFTInfo[] memory unstakedNFTs = new NFTInfo[](numUnstakedNFTs);
@@ -220,19 +224,21 @@ contract NFTStaking is
             uint256[] memory whitelistedTokenIds = _erc1155TokenIdWhitelist[
                 nftAddress
             ];
-            for (uint256 id = 0; id < whitelistedTokenIds.length; id++) {
+            for (uint256 j = 0; j < whitelistedTokenIds.length; j++) {
                 uint256 quantity = IERC1155(nftAddress).balanceOf(
                     participant,
-                    id
+                    whitelistedTokenIds[j]
                 );
-                unstakedNFTs[nftCount] = NFTInfo(
-                    NFTType.ERC1155,
-                    nftAddress,
-                    id,
-                    quantity,
-                    0
-                );
-                nftCount++;
+                if (quantity > 0) {
+                    unstakedNFTs[nftCount] = NFTInfo(
+                        NFTType.ERC1155,
+                        nftAddress,
+                        whitelistedTokenIds[j],
+                        quantity,
+                        0
+                    );
+                    nftCount++;
+                }
             }
         }
 
@@ -319,11 +325,11 @@ contract NFTStaking is
     ) external whenNotPaused nonReentrant {
         require(
             nftAddresses.length == tokenIds.length,
-            "NFTStaking: Lengths mismatch"
+            "NFTStaking: lengths mismatch"
         );
         require(
             nftAddresses.length == quantities.length,
-            "NFTStaking: Lengths mismatch"
+            "NFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)
             _stake(nftAddresses[i], tokenIds[i], quantities[i]);
@@ -336,11 +342,11 @@ contract NFTStaking is
     ) external whenNotPaused nonReentrant {
         require(
             nftAddresses.length == tokenIds.length,
-            "NFTStaking: Lengths mismatch"
+            "NFTStaking: lengths mismatch"
         );
         require(
             nftAddresses.length == quantities.length,
-            "NFTStaking: Lengths mismatch"
+            "NFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)
             _unstake(nftAddresses[i], tokenIds[i], quantities[i]);
@@ -404,6 +410,11 @@ contract NFTStaking is
         require(quantity > 0, "NFTStaking: unstake nothing");
         _settle(msg.sender);
         StakingInfo storage stakingInfo = _stakingInfoOf[msg.sender];
+        require(
+            block.timestamp >=
+                stakingInfo.stakingMomentOf[nftAddress][tokenId] + lockDuration,
+            "NFTStaking: NFT not unlocked yet"
+        );
         if (_typeOf[nftAddress] == NFTType.ERC721) {
             require(
                 quantity == 1,
@@ -412,12 +423,6 @@ contract NFTStaking is
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] == 1,
                 "NFTStaking: NFT not found"
-            );
-            require(
-                block.timestamp >=
-                    stakingInfo.stakingMomentOf[nftAddress][tokenId] +
-                        lockDuration,
-                "NFTStaking: NFT not unlocked yet"
             );
             ERC721Enumerable(nftAddress).safeTransferFrom(
                 address(this),
@@ -443,12 +448,6 @@ contract NFTStaking is
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] >= quantity,
                 "NFTStaking: not enough NFTs to unstake"
-            );
-            require(
-                block.timestamp >=
-                    stakingInfo.stakingMomentOf[nftAddress][tokenId] +
-                        lockDuration,
-                "NFTStaking: NFT not unlocked yet"
             );
             IERC1155(nftAddress).safeTransferFrom(
                 address(this),
