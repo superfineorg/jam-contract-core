@@ -46,6 +46,7 @@ contract NFTStaking is
     uint256 private _totalStakedNFTs;
     mapping(address => NFTType) private _typeOf;
     mapping(address => StakingInfo) private _stakingInfoOf;
+    mapping(address => mapping(uint256 => address)) private _ownerOf;
     mapping(address => bool) private _operators;
 
     // Whitelist
@@ -394,6 +395,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs += quantity;
         _totalStakedNFTs += quantity;
+        _ownerOf[nftAddress][tokenId] = msg.sender;
         emit NFTStaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -406,6 +408,10 @@ contract NFTStaking is
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155TokenIdWhitelisted[nftAddress][tokenId],
             "NFTStaking: this NFT is not supported"
+        );
+        require(
+            _ownerOf[nftAddress][tokenId] == msg.sender,
+            "NFTStaking: only owner can unstake"
         );
         require(quantity > 0, "NFTStaking: unstake nothing");
         _settle(msg.sender);
@@ -478,6 +484,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs -= quantity;
         _totalStakedNFTs -= quantity;
+        delete _ownerOf[nftAddress][tokenId];
         emit NFTUnstaked(msg.sender, nftAddress, tokenId, quantity);
     }
 

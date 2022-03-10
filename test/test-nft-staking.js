@@ -191,6 +191,12 @@ describe("Test NFT staking program", () => {
   it("Unstake the staked ERC721 NFT above", async () => {
     await expect(
       this.nftStakingFactory
+        .connect(this.deployer)
+        .attach(this.nftStakingContract.address)
+        .unstake([this.nft721Contract.address], [1], [1])
+    ).to.be.revertedWith("NFTStaking: only owner can unstake");
+    await expect(
+      this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft721Contract.address], [1], [1])
@@ -210,6 +216,18 @@ describe("Test NFT staking program", () => {
   });
 
   it("Unstake the staked ERC1155 NFTs above", async () => {
+    await expect(
+      this.nftStakingFactory
+        .connect(this.deployer)
+        .attach(this.nftStakingContract.address)
+        .unstake([this.nft1155Contract.address], [1], [8])
+    ).to.be.revertedWith("NFTStaking: only owner can unstake");
+    await expect(
+      this.nftStakingFactory
+        .connect(this.participant)
+        .attach(this.nftStakingContract.address)
+        .unstake([this.nft1155Contract.address], [1], [16])
+    ).to.be.revertedWith("NFTStaking: not enough NFTs to unstake");
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
