@@ -3,8 +3,10 @@ require('@nomiclabs/hardhat-ethers');
 const hre = require('hardhat');
 const { expect } = require("chai");
 const NFT_STAKING = "NFTStaking";
-const SIMPLE_NFT_721 = "SimpleERC721";
-const SIMPLE_NFT_1155 = "SimpleERC1155";
+const SIMPLE_ERC_20 = "SimpleERC20";
+const SIMPLE_ERC_721 = "SimpleERC721";
+const SIMPLE_ERC_1155 = "SimpleERC1155";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 before("Deploy NFTStaking contract and simple NFT contracts", async () => {
   // Prepare parameters
@@ -15,11 +17,23 @@ before("Deploy NFTStaking contract and simple NFT contracts", async () => {
 
   // Deploy NFTStaking contract
   this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
-  this.nftStakingContract = await this.nftStakingFactory.deploy(4, 150000);
+  this.nftStakingContract = await this.nftStakingFactory.deploy(4, 150000, ZERO_ADDRESS);
   await this.nftStakingContract.deployed();
 
+  // Deploy a simple ERC20 token to award
+  this.erc20Factory = await hre.ethers.getContractFactory(SIMPLE_ERC_20);
+  this.erc20Contract = await this.erc20Factory.deploy(
+    deployer.address,
+    "10000000000000000000000000",
+    "10000000000000000000000000",
+    18,
+    "Reward Token",
+    "RT"
+  );
+  await this.erc20Contract.deployed();
+
   // Deploy a simple NFT 721 contract
-  this.nft721Factory = await hre.ethers.getContractFactory(SIMPLE_NFT_721);
+  this.nft721Factory = await hre.ethers.getContractFactory(SIMPLE_ERC_721);
   this.nft721Contract = await this.nft721Factory.deploy(
     deployer.address,
     "Gamejam Awesome NFT",
@@ -29,12 +43,21 @@ before("Deploy NFTStaking contract and simple NFT contracts", async () => {
   await this.nft721Contract.deployed();
 
   // Deploy a simple NFT 1155 contract
-  this.nft1155Factory = await hre.ethers.getContractFactory(SIMPLE_NFT_1155);
+  this.nft1155Factory = await hre.ethers.getContractFactory(SIMPLE_ERC_1155);
   this.nft1155Contract = await this.nft1155Factory.deploy();
   await this.nft1155Contract.deployed();
 });
 
 describe("Test NFT staking program", () => {
+  it("Check initial values", async () => {
+    let lockDuration = await this.nftStakingContract.lockDuration();
+    let rewardPerDay = await this.nftStakingContract.rewardPerDay();
+    let rewardToken = await this.nftStakingContract.rewardToken();
+    expect(lockDuration.toString()).to.equal("4");
+    expect(rewardPerDay.toString()).to.equal("150000");
+    expect(rewardToken).to.equal(ZERO_ADDRESS);
+  });
+
   it("Setup operator role", async () => {
     await this.nftStakingFactory
       .connect(this.deployer)
@@ -47,6 +70,10 @@ describe("Test NFT staking program", () => {
       to: this.nftStakingContract.address,
       value: hre.ethers.utils.parseEther("80")
     });
+    await this.erc20Factory
+      .connect(this.deployer)
+      .attach(this.erc20Contract.address)
+      .transfer(this.nftStakingContract.address, "9000000000000000000000000");
   });
 
   it("Set lock duration", async () => {
@@ -213,6 +240,15 @@ describe("Test NFT staking program", () => {
     expect(stakedNFTs[0].tokenId.toString()).to.equal("1");
     expect(stakedNFTs[0].quantity.toString()).to.equal("15");
     expect(stakedNFTs[0].stakingMoment.toString()).not.to.equal("0");
+  });
+
+  it("Admin changes the reward token", async () => {
+    await this.nftStakingFactory
+      .connect(this.operator)
+      .attach(this.nftStakingContract.address)
+      .setRewardToken(this.erc20Contract.address);
+    let rewardToken = await this.nftStakingContract.rewardToken();
+    expect(rewardToken).to.equal(this.erc20Contract.address);
   });
 
   it("Unstake the staked ERC1155 NFTs above", async () => {
