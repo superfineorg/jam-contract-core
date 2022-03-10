@@ -3,9 +3,11 @@ const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
 const NFT_STAKING = "NFTStaking";
+const ERC20 = "SimpleERC20";
 const ERC721 = "SimpleERC721";
 const ERC1155 = "SimpleERC1155";
 const TESTER_ADDR = "0x7871aa48fc61A25f444e4B3F53125FBca5AF437B";
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 let deploy = async () => {
   const [deployer] = await hre.ethers.getSigners();
@@ -14,12 +16,26 @@ let deploy = async () => {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
 
+  // Deploy ERC20
+  console.log(`Deploying ${ERC20} with parameters: "${deployer.address}" "100000000000000000000000000" "100000000000000000000000000" "18" "Test-JAM" "TJAM"`);
+  this.erc20Factory = await hre.ethers.getContractFactory(ERC20);
+  this.erc20Contract = await this.erc20Factory.deploy(
+    deployer.address,
+    "100000000000000000000000000",
+    "100000000000000000000000000",
+    18,
+    "Test-JAM",
+    "TJAM"
+  );
+  await this.erc20Contract.deployed();
+  deployInfo[this.networkName][ERC20] = this.erc20Contract.address;
+
   // Deploy ERC721
-  console.log(`Deploying ${ERC721} with parameters: "${TESTER_ADDR}" "Gamejam Awesome NFT" "JamNFT" "https://xxx.com/"`);
+  console.log(`Deploying ${ERC721} with parameters: "${TESTER_ADDR}" "Gamejam-Awesome-NFT" "JamNFT" "https://xxx.com/"`);
   this.erc721Factory = await hre.ethers.getContractFactory(ERC721);
   this.erc721Contract = await this.erc721Factory.deploy(
     TESTER_ADDR,
-    "Gamejam Awesome NFT",
+    "Gamejam-Awesome-NFT",
     "JamNFT",
     "https://xxx.com/"
   );
@@ -34,9 +50,9 @@ let deploy = async () => {
   deployInfo[this.networkName][ERC1155] = this.erc1155Contract.address;
 
   // Deploy NFTStaking
-  console.log(`Deploying ${NFT_STAKING} with parameters: "${300}" "${"2000000000000000000"}"`);
+  console.log(`Deploying ${NFT_STAKING} with parameters: "${300}" "${"2000000000000000000"}" "${ZERO_ADDRESS}"`);
   this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
-  this.nftStakingContract = await this.nftStakingFactory.deploy(300, "2000000000000000000");
+  this.nftStakingContract = await this.nftStakingFactory.deploy(300, "2000000000000000000", ZERO_ADDRESS);
   await this.nftStakingContract.deployed();
   deployInfo[this.networkName][NFT_STAKING] = this.nftStakingContract.address;
 
@@ -63,6 +79,10 @@ let setup = async () => {
     to: this.nftStakingContract.address,
     value: hre.ethers.utils.parseEther("80")
   });
+  await this.erc20Factory
+    .connect(this.deployer)
+    .attach(this.erc20Contract.address)
+    .transfer(this.nftStakingContract.address, "50000000000000000000000000");
 
   // Whitelist the ERC721 and ERC1155 tokens
   console.log(`Whitelisting ${this.erc721Contract.address} and ${this.erc1155Contract.address}...`);

@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract NFTStaking is
     ERC721Holder,
@@ -43,9 +44,11 @@ contract NFTStaking is
 
     uint256 public lockDuration;
     uint256 public rewardPerDay;
+    address public rewardToken;
     uint256 private _totalStakedNFTs;
     mapping(address => NFTType) private _typeOf;
     mapping(address => StakingInfo) private _stakingInfoOf;
+    mapping(address => mapping(uint256 => address)) private _ownerOf;
     mapping(address => bool) private _operators;
 
     // Whitelist
@@ -73,9 +76,14 @@ contract NFTStaking is
 
     receive() external payable {}
 
-    constructor(uint256 lockDuration_, uint256 rewardPerDay_) {
+    constructor(
+        uint256 lockDuration_,
+        uint256 rewardPerDay_,
+        address rewardToken_
+    ) {
         lockDuration = lockDuration_;
         rewardPerDay = rewardPerDay_;
+        rewardToken = rewardToken_;
         _operators[msg.sender] = true;
     }
 
@@ -265,6 +273,10 @@ contract NFTStaking is
         rewardPerDay = rewardPerDay_;
     }
 
+    function setRewardToken(address rewardToken_) external onlyOperator {
+        rewardToken = rewardToken_;
+    }
+
     function whitelistNFT(
         address[] calldata nftAddresses,
         NFTType[] calldata types,
@@ -394,6 +406,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs += quantity;
         _totalStakedNFTs += quantity;
+        _ownerOf[nftAddress][tokenId] = msg.sender;
         emit NFTStaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -406,6 +419,10 @@ contract NFTStaking is
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155TokenIdWhitelisted[nftAddress][tokenId],
             "NFTStaking: this NFT is not supported"
+        );
+        require(
+            _ownerOf[nftAddress][tokenId] == msg.sender,
+            "NFTStaking: only owner can unstake"
         );
         require(quantity > 0, "NFTStaking: unstake nothing");
         _settle(msg.sender);
@@ -478,6 +495,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs -= quantity;
         _totalStakedNFTs -= quantity;
+        delete _ownerOf[nftAddress][tokenId];
         emit NFTUnstaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -488,11 +506,16 @@ contract NFTStaking is
     }
 
     function _settle(address participant) private {
-        uint256 rewardAmount = getCurrentReward(participant);
-        if (rewardAmount == 0) return;
+        uint256 reward = getCurrentReward(participant);
+        if (reward == 0) return;
         _stakingInfoOf[participant].lastClaimMoment = block.timestamp;
-        (bool success, ) = payable(participant).call{value: rewardAmount}("");
-        require(success, "NFTStaking: settle failed");
+        if (rewardToken == address(0)) {
+            (bool success, ) = payable(participant).call{value: reward}("");
+            require(success, "NFTStaking: native token settle failed");
+        } else {
+            bool success = IERC20(rewardToken).transfer(participant, reward);
+            require(success, "NFTStaking: ERC20 token settle failed");
+        }
     }
 
     function pause() external onlyOperator {

@@ -1730,6 +1730,91 @@ interface IERC1155 is IERC165 {
 }
 
 
+// File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.5.0
+
+// OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/IERC20.sol)
+
+pragma solidity ^0.8.0;
+
+/**
+ * @dev Interface of the ERC20 standard as defined in the EIP.
+ */
+interface IERC20 {
+    /**
+     * @dev Returns the amount of tokens in existence.
+     */
+    function totalSupply() external view returns (uint256);
+
+    /**
+     * @dev Returns the amount of tokens owned by `account`.
+     */
+    function balanceOf(address account) external view returns (uint256);
+
+    /**
+     * @dev Moves `amount` tokens from the caller's account to `to`.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transfer(address to, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * This value changes when {approve} or {transferFrom} are called.
+     */
+    function allowance(address owner, address spender) external view returns (uint256);
+
+    /**
+     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * IMPORTANT: Beware that changing an allowance with this method brings the risk
+     * that someone may use both the old and the new allowance by unfortunate
+     * transaction ordering. One possible solution to mitigate this race
+     * condition is to first reduce the spender's allowance to 0 and set the
+     * desired value afterwards:
+     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
+     *
+     * Emits an {Approval} event.
+     */
+    function approve(address spender, uint256 amount) external returns (bool);
+
+    /**
+     * @dev Moves `amount` tokens from `from` to `to` using the
+     * allowance mechanism. `amount` is then deducted from the caller's
+     * allowance.
+     *
+     * Returns a boolean value indicating whether the operation succeeded.
+     *
+     * Emits a {Transfer} event.
+     */
+    function transferFrom(
+        address from,
+        address to,
+        uint256 amount
+    ) external returns (bool);
+
+    /**
+     * @dev Emitted when `value` tokens are moved from one account (`from`) to
+     * another (`to`).
+     *
+     * Note that `value` may be zero.
+     */
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    /**
+     * @dev Emitted when the allowance of a `spender` for an `owner` is set by
+     * a call to {approve}. `value` is the new allowance.
+     */
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+}
+
+
 // File contracts/NFTStaking.sol
 
 // SPDX-License-Identifier: MIT
@@ -1775,9 +1860,11 @@ contract NFTStaking is
 
     uint256 public lockDuration;
     uint256 public rewardPerDay;
+    address public rewardToken;
     uint256 private _totalStakedNFTs;
     mapping(address => NFTType) private _typeOf;
     mapping(address => StakingInfo) private _stakingInfoOf;
+    mapping(address => mapping(uint256 => address)) private _ownerOf;
     mapping(address => bool) private _operators;
 
     // Whitelist
@@ -1805,9 +1892,14 @@ contract NFTStaking is
 
     receive() external payable {}
 
-    constructor(uint256 lockDuration_, uint256 rewardPerDay_) {
+    constructor(
+        uint256 lockDuration_,
+        uint256 rewardPerDay_,
+        address rewardToken_
+    ) {
         lockDuration = lockDuration_;
         rewardPerDay = rewardPerDay_;
+        rewardToken = rewardToken_;
         _operators[msg.sender] = true;
     }
 
@@ -1997,6 +2089,10 @@ contract NFTStaking is
         rewardPerDay = rewardPerDay_;
     }
 
+    function setRewardToken(address rewardToken_) external onlyOperator {
+        rewardToken = rewardToken_;
+    }
+
     function whitelistNFT(
         address[] calldata nftAddresses,
         NFTType[] calldata types,
@@ -2126,6 +2222,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs += quantity;
         _totalStakedNFTs += quantity;
+        _ownerOf[nftAddress][tokenId] = msg.sender;
         emit NFTStaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -2138,6 +2235,10 @@ contract NFTStaking is
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155TokenIdWhitelisted[nftAddress][tokenId],
             "NFTStaking: this NFT is not supported"
+        );
+        require(
+            _ownerOf[nftAddress][tokenId] == msg.sender,
+            "NFTStaking: only owner can unstake"
         );
         require(quantity > 0, "NFTStaking: unstake nothing");
         _settle(msg.sender);
@@ -2210,6 +2311,7 @@ contract NFTStaking is
         stakingInfo.lastClaimMoment = block.timestamp;
         stakingInfo.numStakedNFTs -= quantity;
         _totalStakedNFTs -= quantity;
+        delete _ownerOf[nftAddress][tokenId];
         emit NFTUnstaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -2220,11 +2322,16 @@ contract NFTStaking is
     }
 
     function _settle(address participant) private {
-        uint256 rewardAmount = getCurrentReward(participant);
-        if (rewardAmount == 0) return;
+        uint256 reward = getCurrentReward(participant);
+        if (reward == 0) return;
         _stakingInfoOf[participant].lastClaimMoment = block.timestamp;
-        (bool success, ) = payable(participant).call{value: rewardAmount}("");
-        require(success, "NFTStaking: settle failed");
+        if (rewardToken == address(0)) {
+            (bool success, ) = payable(participant).call{value: reward}("");
+            require(success, "NFTStaking: native token settle failed");
+        } else {
+            bool success = IERC20(rewardToken).transfer(participant, reward);
+            require(success, "NFTStaking: ERC20 token settle failed");
+        }
     }
 
     function pause() external onlyOperator {
