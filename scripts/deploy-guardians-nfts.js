@@ -5,7 +5,8 @@ const deployInfo = require("../deploy.json");
 const CONTRACT_NAME = "GamejamNFT721";
 const PROXY_REGISTRY_ADDRESS = {
   "rinkeby": "0xf57b2c51ded3a29e6891aba85459d600256cf317",
-  "eth": "0xa5409ec958C83C3f309868babACA7c86DCB077c1"
+  "eth": "0xa5409ec958C83C3f309868babACA7c86DCB077c1",
+  "jamchaintestnet": "0x0000000000000000000000000000000000000001"
 };
 
 async function deploy() {
