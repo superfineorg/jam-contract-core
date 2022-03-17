@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: UNLICENSED */
+/* SPDX-License-Identifier: MIT */
 
 pragma solidity ^0.8.6;
 
@@ -14,8 +14,8 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
         string uri;
     }
 
-    uint256[] private _mintedTokentokenIds;
-    mapping(uint256 => bool) _isTokenIdMinted;
+    uint256[] private _mintedTokenIds;
+    mapping(uint256 => bool) private _isTokenIdMinted;
 
     constructor(string memory uri_) ERC1155PresetMinterPauser(uri_) {}
 
@@ -41,14 +41,14 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
     {
         // Get the number of owned ERC1155 NFTs
         uint256 numOwnedNFTs = 0;
-        for (uint256 i = 0; i < _mintedTokentokenIds.length; i++)
-            if (balanceOf(user, _mintedTokentokenIds[i]) > 0) numOwnedNFTs++;
+        for (uint256 i = 0; i < _mintedTokenIds.length; i++)
+            if (balanceOf(user, _mintedTokenIds[i]) > 0) numOwnedNFTs++;
 
         // Query all owned ERC1155 NFTs
         TokenInfo[] memory ownedNFTs = new TokenInfo[](numOwnedNFTs);
         uint256 nftCount = 0;
-        for (uint256 j = 0; j < _mintedTokentokenIds.length; j++) {
-            uint256 tokenId = _mintedTokentokenIds[j];
+        for (uint256 j = 0; j < _mintedTokenIds.length; j++) {
+            uint256 tokenId = _mintedTokenIds[j];
             if (balanceOf(user, tokenId) > 0) {
                 ownedNFTs[nftCount] = TokenInfo(
                     tokenId,
@@ -85,7 +85,7 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
             for (uint256 i = 0; i < tokenIds.length; i++)
                 if (!_isTokenIdMinted[tokenIds[i]]) {
                     _isTokenIdMinted[tokenIds[i]] = true;
-                    _mintedTokentokenIds.push(tokenIds[i]);
+                    _mintedTokenIds.push(tokenIds[i]);
                 }
         super._beforeTokenTransfer(
             operator,
