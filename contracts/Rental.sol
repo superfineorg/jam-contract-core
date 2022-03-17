@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IRentalContract.sol";
+import "./interfaces/IRentalContract.sol";
 import "./utils/HasNoEther.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./IOracle.sol";
+import "./interfaces/IOracle.sol";
 
 contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
     address private backendAddr;
