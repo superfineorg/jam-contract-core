@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
@@ -29,7 +28,10 @@ contract WrapCoin is ERC20 {
     }
 
     function withdraw(uint256 _wad) external {
-        require(balanceOf(msg.sender) >= _wad);
+        require(
+            balanceOf(msg.sender) >= _wad,
+            "WrappedCoin: wad exceeds user balance"
+        );
         super._burn(msg.sender, _wad);
         payable(msg.sender).transfer(_wad);
         emit Withdrawal(msg.sender, _wad);

@@ -1,11 +1,10 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.0;
 
 import "./tokens/SimpleERC20.sol";
 
 contract ERC20Factory {
-    SimpleERC20Token[] private fungibleTokens;
+    SimpleERC20[] private fungibleTokens;
 
     event CreateERC20(
         address indexed _owner,
@@ -22,7 +21,7 @@ contract ERC20Factory {
         string memory _name,
         string memory _symbol
     ) public {
-        SimpleERC20Token token = new SimpleERC20Token(
+        SimpleERC20 token = new SimpleERC20(
             msg.sender,
             capacity,
             initialSupply,
@@ -52,7 +51,7 @@ contract ERC20Factory {
             uint256 capacity
         )
     {
-        SimpleERC20Token token = fungibleTokens[_index];
+        SimpleERC20 token = fungibleTokens[_index];
 
         return (
             token.coinTokenAddress(),

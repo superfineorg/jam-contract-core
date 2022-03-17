@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -13,7 +12,7 @@ abstract contract RewardsDistributionRecipient is Ownable {
     modifier onlyRewardsDistribution() {
         require(
             msg.sender == rewardsDistribution,
-            "Caller is not RewardsDistribution contract"
+            "RewardsDistributionRecipient: caller is not RewardsDistribution contract"
         );
         _;
     }
