@@ -22,7 +22,8 @@
     "chai": "^4.3.4",
     "crypto": "^1.0.1",
     "eccrypto": "^1.1.6",
-    "fs": "0.0.1-security"
+    "fs": "0.0.1-security",
+    "web3-utils": "^1.7.1"
   },
   "devDependencies": {
     "@nomiclabs/buidler": "^1.4.8",
