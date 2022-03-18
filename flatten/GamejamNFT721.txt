@@ -2622,7 +2622,7 @@ abstract contract ERC721Tradable is
 
 // File contracts/tokens/ERC721/GamejamNFT721.sol
 
-/* SPDX-License-Identifier: UNLICENSED */
+/* SPDX-License-Identifier: MIT */
 
 pragma solidity ^0.8.6;
 
