@@ -9,15 +9,25 @@ contract JamOGPassMinting {
     JamOGPass public jamOGPassContract;
     JamSuperHappyFrens public jamSuperHappyFrensContract;
     uint256 public mintingFee;
+    uint256 public jamSuperHappyFrensPrice;
+    uint256 public jamSuperHappyFrensDiscountPrice;
 
     constructor(
         address jamOGPass,
         address jamSuperHappyFrens,
-        uint256 mintingFee_
+        uint256 mintingFee_,
+        uint256 jamSuperHappyFrensPrice_,
+        uint256 jamSuperHappyFrensDiscountPrice_
     ) {
+        require(
+            jamSuperHappyFrensPrice_ > jamSuperHappyFrensDiscountPrice_,
+            "JamOGPassMinting: normal price must be greater than discount price"
+        );
         jamOGPassContract = JamOGPass(jamOGPass);
         jamSuperHappyFrensContract = JamSuperHappyFrens(jamSuperHappyFrens);
         mintingFee = mintingFee_;
+        jamSuperHappyFrensPrice = jamSuperHappyFrensPrice_;
+        jamSuperHappyFrensDiscountPrice = jamSuperHappyFrensDiscountPrice_;
     }
 
     function mintOGPass() external payable {
@@ -32,8 +42,19 @@ contract JamOGPassMinting {
         require(success, "JamOGPassMinting: return fee failed");
     }
 
-    function exchangeOGPass(uint256 id) external {
-        jamOGPassContract.burn(id);
-        jamSuperHappyFrensContract.mint(msg.sender, id, "");
+    function buySuperHappyFrens(uint256 ogPassId) external payable {
+        uint256 price = jamSuperHappyFrensPrice;
+        try jamOGPassContract.ownerOf(ogPassId) returns (address owner) {
+            if (owner == msg.sender) {
+                price = jamSuperHappyFrensDiscountPrice;
+                jamOGPassContract.burn(ogPassId);
+            }
+        } catch {}
+        require(msg.value > price, "JamOGPassMinting: not enough money");
+        jamSuperHappyFrensContract.mintTo(msg.sender);
+        (bool success, ) = payable(msg.sender).call{value: msg.value - price}(
+            ""
+        );
+        require(success, "JamOGPassMinting: return money failed");
     }
 }
