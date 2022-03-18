@@ -2,9 +2,9 @@ require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
 const { expect } = require("chai");
-const GAMEJAM_NFT_721 = "GamejamNFT721";
+const GAMEJAM_NFT_721 = "JamNFT721";
 
-before("Deploy GamejamNFT721 contracts", async () => {
+before("Deploy JamNFT721 contracts", async () => {
   // Prepare parameters
   const [deployer, minter, user1, user2, user3] = await hre.ethers.getSigners();
   this.deployer = deployer;
@@ -13,7 +13,7 @@ before("Deploy GamejamNFT721 contracts", async () => {
   this.user2 = user2;
   this.user3 = user3;
 
-  // Deploy GamejamNFT721 contract
+  // Deploy JamNFT721 contract
   this.nftFactory = await hre.ethers.getContractFactory(GAMEJAM_NFT_721);
   this.nftContract = await this.nftFactory.deploy(
     "Gamejam Main NFT",
@@ -24,7 +24,7 @@ before("Deploy GamejamNFT721 contracts", async () => {
   );
 });
 
-describe("Test GamejamNFT721 contract", () => {
+describe("Test JamNFT721 contract", () => {
   it("Check NFTs limit", async () => {
     let limit = await this.nftContract.nftLimit();
     expect(limit.toString()).to.equal("7");
@@ -41,7 +41,7 @@ describe("Test GamejamNFT721 contract", () => {
   });
 
   it("Mint specific NFTs", async () => {
-    await expect(this.nftContract.tokenURI(3)).to.be.revertedWith("GamejamNFT721: token does not exist");
+    await expect(this.nftContract.tokenURI(3)).to.be.revertedWith("JamNFT721: token does not exist");
     await this.nftFactory
       .connect(this.minter)
       .attach(this.nftContract.address)
@@ -106,7 +106,7 @@ describe("Test GamejamNFT721 contract", () => {
 
   it("Check URI of some NFTs", async () => {
     let tokenUri = await this.nftContract.tokenURI(4);
-    await expect(this.nftContract.tokenURI(5)).to.be.revertedWith("GamejamNFT721: token does not exist");
+    await expect(this.nftContract.tokenURI(5)).to.be.revertedWith("JamNFT721: token does not exist");
     expect(tokenUri).to.equal("https://gamejam.com/nft/4.json");
   });
 
@@ -141,7 +141,7 @@ describe("Test GamejamNFT721 contract", () => {
         .connect(this.minter)
         .attach(this.nftContract.address)
         .mint(this.user2.address, 8, "#8")
-    ).to.be.revertedWith("GamejamNFT721: Maximum NFTs minted");
+    ).to.be.revertedWith("JamNFT721: Maximum NFTs minted");
     await this.nftFactory
       .connect(this.minter)
       .attach(this.nftContract.address)
@@ -155,7 +155,7 @@ describe("Test GamejamNFT721 contract", () => {
         .connect(this.minter)
         .attach(this.nftContract.address)
         .mintTo(this.user2.address)
-    ).to.be.revertedWith("GamejamNFT721: Maximum NFTs minted");
+    ).to.be.revertedWith("JamNFT721: Maximum NFTs minted");
     let totalSupply = await this.nftContract.totalSupply();
     expect(totalSupply.toString()).to.equal("6");
   });

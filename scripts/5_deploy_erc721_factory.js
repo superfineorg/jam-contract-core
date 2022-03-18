@@ -1,5 +1,5 @@
-var erc721Factory = artifacts.require("ERC721Factory");
+var erc721Factory = artifacts.require("JamERC721Factory");
 
-module.exports = function(deployer) {
-    deployer.deploy(erc721Factory)
-}
+module.exports = function (deployer) {
+    deployer.deploy(erc721Factory);
+};

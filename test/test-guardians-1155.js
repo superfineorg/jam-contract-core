@@ -3,22 +3,22 @@ require('@nomiclabs/hardhat-ethers');
 const hre = require('hardhat');
 const { soliditySha3 } = require("web3-utils");
 const { expect } = require("chai");
-const GAMEJAM_NFT_1155 = "GamejamNFT1155";
+const GAMEJAM_NFT_1155 = "JamNFT1155";
 
-before("Deploy NFTStaking contract and simple NFT contracts", async () => {
+before("Deploy JamNFT1155 contract", async () => {
   // Prepare parameters
   const [deployer, minter, user] = await hre.ethers.getSigners();
   this.deployer = deployer;
   this.minter = minter;
   this.user = user;
 
-  // Deploy the GamejamNFT1155 contract
+  // Deploy the JamNFT1155 contract
   this.nft1155Factory = await hre.ethers.getContractFactory(GAMEJAM_NFT_1155);
   this.nft1155Contract = await this.nft1155Factory.deploy("https://gamejam.com/nft1155/");
   await this.nft1155Contract.deployed();
 });
 
-describe("Test NFT staking program", () => {
+describe("Test JamNFT1155 contract", () => {
   it("Grant minter role", async () => {
     let minterRole = await this.nft1155Contract.MINTER_ROLE();
     await this.nft1155Factory
@@ -77,7 +77,7 @@ describe("Test NFT staking program", () => {
   });
 
   it("Check URI of non-existent NFTs", async () => {
-    await expect(this.nft1155Contract.uri(100)).to.be.revertedWith("GamejamNFT1155: URI query for non-existent token");
+    await expect(this.nft1155Contract.uri(100)).to.be.revertedWith("JamNFT1155: URI query for non-existent token");
   });
 
   it("Burn some NFTs", async () => {

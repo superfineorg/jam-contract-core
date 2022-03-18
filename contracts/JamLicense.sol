@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./utils/HasNoEther.sol";
-import "./NodeLicenseNFT.sol";
+import "./JamNodeLicenseNFT.sol";
 
 contract JamLicense is ReentrancyGuard, HasNoEther {
     using SafeMath for uint256;
@@ -27,9 +27,9 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     function _getNodeLicense(address _nftAddress)
         internal
         pure
-        returns (NodeLicenseNFT)
+        returns (JamNodeLicenseNFT)
     {
-        NodeLicenseNFT candidateContract = NodeLicenseNFT(_nftAddress);
+        JamNodeLicenseNFT candidateContract = JamNodeLicenseNFT(_nftAddress);
         return candidateContract;
     }
 
@@ -103,7 +103,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
     }
 
     function returnOwnerShip() external onlyOwner nonReentrant {
-        NodeLicenseNFT node = _getNodeLicense(nodeAddress);
+        JamNodeLicenseNFT node = _getNodeLicense(nodeAddress);
         node.transferOwnership(msg.sender);
     }
 
@@ -154,7 +154,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
         validNumPurchaseNodeLicense(numNodeLicense)
         returns (uint256)
     {
-        NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
+        JamNodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
         uint256 nodeCount = nodeContract.totalSupply();
         uint256 nextNodeCount = nodeCount.add(numNodeLicense) - 1;
         uint256 currentBatch = nodeCount.div(priceStep);
@@ -215,7 +215,7 @@ contract JamLicense is ReentrancyGuard, HasNoEther {
             }
         }
         // mint token
-        NodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
+        JamNodeLicenseNFT nodeContract = _getNodeLicense(nodeAddress);
         for (uint256 i = 0; i < numNodeLicense; i++) {
             nodeContract.mint(msg.sender);
         }

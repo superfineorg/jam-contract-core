@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
-const CONTRACT_NAME = "GamejamNFT721";
+const CONTRACT_NAME = "JamNFT721";
 const PROXY_REGISTRY_ADDRESS = {
   "rinkeby": "0xf57b2c51ded3a29e6891aba85459d600256cf317",
   "eth": "0xa5409ec958C83C3f309868babACA7c86DCB077c1",

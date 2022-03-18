@@ -1,26 +1,26 @@
 require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
-const ORACLE = "SimpleOracle";
-const RENTAL = "Rental";
+const JAM_ORACLE = "JamOracle";
+const JAM_RENTAL = "JamRental";
 
-before("Deploy Vesting contract", async () => {
+before("Deploy JamRental contract", async () => {
   // Prepare parameters
   const [
     deployer
   ] = await hre.ethers.getSigners();
   this.deployer = deployer;
 
-  this.oracleFactory = await hre.ethers.getContractFactory(ORACLE);
+  this.oracleFactory = await hre.ethers.getContractFactory(JAM_ORACLE);
   this.oracleContract = await this.oracleFactory.deploy();
   await this.oracleContract.deployed();
 
-  this.rentalFactory = await hre.ethers.getContractFactory(RENTAL);
+  this.rentalFactory = await hre.ethers.getContractFactory(JAM_RENTAL);
   this.rentalContract = await this.rentalFactory.deploy(deployer.address);
   await this.oracleContract.deployed();
 });
 
-describe("Test Vesting contract", () => {
+describe("Test JamRental contract", () => {
   it("", async () => {
     await this.rentalFactory
       .connect(this.deployer)

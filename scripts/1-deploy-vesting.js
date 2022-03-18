@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
-const CONTRACT_NAME = "Vesting";
+const CONTRACT_NAME = "JamVesting";
 
 async function deploy() {
   // Deploy

@@ -2,9 +2,9 @@ require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
 const { expect } = require("chai");
-const VESTING = "Vesting";
+const JAM_VESTING = "JamVesting";
 
-before("Deploy Vesting contract", async () => {
+before("Deploy JamVesting contract", async () => {
   // Prepare parameters
   const [
     deployer,
@@ -42,14 +42,14 @@ before("Deploy Vesting contract", async () => {
   ];
   this.unlockDistance = 3;
 
-  // Deploy Vesting
-  this.vestingFactory = await hre.ethers.getContractFactory(VESTING);
+  // Deploy JamVesting
+  this.vestingFactory = await hre.ethers.getContractFactory(JAM_VESTING);
   this.vestingContract = await this.vestingFactory.deploy();
   await this.vestingContract.deployed();
 });
 
-describe("Test Vesting contract", () => {
-  it("Set up Vesting contract", async () => {
+describe("Test JamVesting contract", () => {
+  it("Set up JamVesting contract", async () => {
     await this.vestingFactory
       .connect(this.deployer)
       .attach(this.vestingContract.address)

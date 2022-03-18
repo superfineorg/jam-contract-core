@@ -5,7 +5,7 @@ pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC1155/presets/ERC1155PresetMinterPauser.sol";
 
-contract GamejamNFT1155 is ERC1155PresetMinterPauser {
+contract JamNFT1155 is ERC1155PresetMinterPauser {
     using Strings for uint256;
 
     struct TokenInfo {
@@ -22,7 +22,7 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
     function uri(uint256 tokenId) public view override returns (string memory) {
         require(
             _isTokenIdMinted[tokenId],
-            "GamejamNFT1155: URI query for non-existent token"
+            "JamNFT1155: URI query for non-existent token"
         );
         return
             string(
@@ -64,7 +64,7 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
     function setBaseTokenURI(string memory baseTokenURI_) external {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "GamejamNFT1155: caller is not an admin"
+            "JamNFT1155: caller is not an admin"
         );
         _setURI(baseTokenURI_);
     }
@@ -79,7 +79,7 @@ contract GamejamNFT1155 is ERC1155PresetMinterPauser {
     ) internal virtual override {
         require(
             tokenIds.length == quantities.length,
-            "GamejamNFT1155: lengths mismatch"
+            "JamNFT1155: lengths mismatch"
         );
         if (from == address(0))
             for (uint256 i = 0; i < tokenIds.length; i++)

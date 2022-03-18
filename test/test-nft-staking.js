@@ -2,21 +2,21 @@ require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
 const { expect } = require("chai");
-const NFT_STAKING = "NFTStaking";
+const JAM_NFT_STAKING = "JamNFTStaking";
 const SIMPLE_ERC_20 = "SimpleERC20";
 const SIMPLE_ERC_721 = "SimpleERC721";
 const SIMPLE_ERC_1155 = "SimpleERC1155";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
-before("Deploy NFTStaking contract and simple NFT contracts", async () => {
+before("Deploy JamNFTStaking contract and simple NFT contracts", async () => {
   // Prepare parameters
   const [deployer, operator, participant] = await hre.ethers.getSigners();
   this.deployer = deployer;
   this.operator = operator;
   this.participant = participant;
 
-  // Deploy NFTStaking contract
-  this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
+  // Deploy JamNFTStaking contract
+  this.nftStakingFactory = await hre.ethers.getContractFactory(JAM_NFT_STAKING);
   this.nftStakingContract = await this.nftStakingFactory.deploy(4, 150000, ZERO_ADDRESS);
   await this.nftStakingContract.deployed();
 
@@ -167,7 +167,7 @@ describe("Test NFT staking program", () => {
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
         .stake([this.nft721Contract.address], [1], [3])
-    ).to.be.revertedWith("NFTStaking: cannot stake more than 1 ERC721 NFT at a time");
+    ).to.be.revertedWith("JamNFTStaking: cannot stake more than 1 ERC721 NFT at a time");
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
@@ -212,7 +212,7 @@ describe("Test NFT staking program", () => {
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
         .stake([this.nft1155Contract.address], [2], [25])
-    ).to.be.revertedWith("NFTStaking: this NFT is not supported");
+    ).to.be.revertedWith("JamNFTStaking: this NFT is not supported");
   });
 
   it("Unstake the staked ERC721 NFT above", async () => {
@@ -221,13 +221,13 @@ describe("Test NFT staking program", () => {
         .connect(this.deployer)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft721Contract.address], [1], [1])
-    ).to.be.revertedWith("NFTStaking: only owner can unstake");
+    ).to.be.revertedWith("JamNFTStaking: only owner can unstake");
     await expect(
       this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft721Contract.address], [1], [1])
-    ).to.be.revertedWith("NFTStaking: NFT not unlocked yet");
+    ).to.be.revertedWith("JamNFTStaking: NFT not unlocked yet");
     await sleep(9000);
     await this.nftStakingFactory
       .connect(this.participant)
@@ -257,13 +257,13 @@ describe("Test NFT staking program", () => {
         .connect(this.deployer)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft1155Contract.address], [1], [8])
-    ).to.be.revertedWith("NFTStaking: only owner can unstake");
+    ).to.be.revertedWith("JamNFTStaking: only owner can unstake");
     await expect(
       this.nftStakingFactory
         .connect(this.participant)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft1155Contract.address], [1], [16])
-    ).to.be.revertedWith("NFTStaking: not enough NFTs to unstake");
+    ).to.be.revertedWith("JamNFTStaking: not enough NFTs to unstake");
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)

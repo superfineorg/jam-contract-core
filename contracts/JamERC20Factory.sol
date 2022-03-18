@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./tokens/ERC20/SimpleERC20.sol";
 
-contract ERC20Factory {
+contract JamERC20Factory {
     SimpleERC20[] private fungibleTokens;
 
     event CreateERC20(
