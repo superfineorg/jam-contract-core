@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "./ERC721Tradable.sol";
 
-contract GamejamNFT721 is
+contract JamNFT721 is
     Context,
     AccessControlEnumerable,
     ERC721Burnable,
@@ -72,7 +72,7 @@ contract GamejamNFT721 is
         override(ERC721, ERC721Tradable)
         returns (string memory)
     {
-        require(_exists(tokenId), "GamejamNFT721: token does not exist");
+        require(_exists(tokenId), "JamNFT721: token does not exist");
         return
             string(
                 abi.encodePacked(
@@ -91,7 +91,7 @@ contract GamejamNFT721 is
     {
         require(
             index < ERC721.balanceOf(owner),
-            "GamejamNFT721: owner index out of bounds"
+            "JamNFT721: owner index out of bounds"
         );
         return _ownedTokens[owner][index];
     }
@@ -101,10 +101,7 @@ contract GamejamNFT721 is
     }
 
     function tokenByIndex(uint256 index) public view virtual returns (uint256) {
-        require(
-            index < totalSupply(),
-            "GamejamNFT721: global index out of bounds"
-        );
+        require(index < totalSupply(), "JamNFT721: global index out of bounds");
         return _allTokens[index];
     }
 
@@ -119,20 +116,20 @@ contract GamejamNFT721 is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "GamejamNFT721: must have minter role to mint"
+            "JamNFT721: must have minter role to mint"
         );
-        require(tokenId < nftLimit, "GamejamNFT721: Maximum NFTs minted");
+        require(tokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
         _safeMint(to, tokenId);
     }
 
     function mintTo(address to) public override {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "GamejamNFT721: must have minter role to mint"
+            "JamNFT721: must have minter role to mint"
         );
         require(
             _nextTokenId.current() < nftLimit,
-            "GamejamNFT721: Maximum NFTs minted"
+            "JamNFT721: Maximum NFTs minted"
         );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
@@ -143,7 +140,7 @@ contract GamejamNFT721 is
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "GamejamNFT721: must have pauser role to pause"
+            "JamNFT721: must have pauser role to pause"
         );
         _pause();
     }
@@ -151,7 +148,7 @@ contract GamejamNFT721 is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "GamejamNFT721: must have pauser role to unpause"
+            "JamNFT721: must have pauser role to unpause"
         );
         _unpause();
     }

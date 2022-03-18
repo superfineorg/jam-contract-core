@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IRentalContract.sol";
+import "./interfaces/IRentalContract.sol";
 import "./utils/HasNoEther.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./IOracle.sol";
+import "./interfaces/IOracle.sol";
 
-contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
+contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
     address private backendAddr;
 
     address private oracleContract;
@@ -36,10 +36,10 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
 
     receive() external payable {}
 
-    /* ======== Config Rental ======== */
+    /* ======== Config JamRental ======== */
 
     function setOwnerCut(uint256 _ownerCut) external onlyOwner {
-        require(_ownerCut <= 10000, "Rental: owner cut cannot exceed 100%");
+        require(_ownerCut <= 10000, "JamRental: owner cut cannot exceed 100%");
         ownerCut = _ownerCut;
     }
 
@@ -58,7 +58,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         slippageTolerance = _slippageTolerance;
     }
 
-    /* ======== End Config Rental ======== */
+    /* ======== End Config JamRental ======== */
 
     /* ======== Internal function ======== */
 
@@ -153,23 +153,23 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount
     ) external payable override returns (bool) {
         if (paidToken == address(0)) {
-            require(msg.value >= amount, "Rental: not enough balance");
+            require(msg.value >= amount, "JamRental: not enough balance");
         }
         IOracle or = _getOracleContract();
         uint256 tokenRate = or.GetRate(paidToken);
-        require(tokenRate > 0, "Rental: paid token is not support");
+        require(tokenRate > 0, "JamRental: paid token is not support");
         uint256 totalBalanceUSD = amount / tokenRate;
         uint256 pricingPerDayUSD = viewNFTPricing(
             chainId,
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "Rental: nft is not public for rent");
+        require(pricingPerDayUSD > 0, "JamRental: nft is not public for rent");
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
         require(
             totalBalanceUSD * 10000 >= billAmount * (10000 - slippageTolerance),
-            "Rental: out of slippage tolerance"
+            "JamRental: out of slippage tolerance"
         );
         if (paidToken != address(0)) {
             // Transfer ERC20
@@ -271,7 +271,7 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "Rental: nft is not public for rent");
+        require(pricingPerDayUSD > 0, "JamRental: nft is not public for rent");
 
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
@@ -310,21 +310,21 @@ contract Rental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount = ownerProfit[msg.sender];
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         ownerProfit[msg.sender] = ownerProfit[msg.sender] - amount;
-        require(success, "Rental: transfer failed.");
+        require(success, "JamRental: transfer failed.");
     }
 
     /* ======== End User Query function ======== */
 
     /* ======== Modfier ========= */
     modifier onlyBackend() {
-        require(backendAddr == msg.sender, "Rental: only backend call");
+        require(backendAddr == msg.sender, "JamRental: only backend call");
         _;
     }
 
     modifier onlyNewReceiptId(string memory receiptId) {
         require(
             receiptLog[receiptId] == 0,
-            "Rental: only new receiptId accepted"
+            "JamRental: only new receiptId accepted"
         );
         _;
     }

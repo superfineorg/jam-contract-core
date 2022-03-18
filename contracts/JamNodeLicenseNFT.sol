@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract NodeLicenseNFT is ERC721Enumerable, Ownable {
+contract JamNodeLicenseNFT is ERC721Enumerable, Ownable {
     uint256 _tokenIds;
     string public tokenURIPrefix =
         "https://asset.gamejam.co/gamejam-nft/erc/721/node-license/";

@@ -2,12 +2,7 @@ const hre = require("hardhat");
 const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
-const CONTRACT_NAME = "GamejamNFT721";
-const PROXY_REGISTRY_ADDRESS = {
-  "rinkeby": "0xf57b2c51ded3a29e6891aba85459d600256cf317",
-  "eth": "0xa5409ec958C83C3f309868babACA7c86DCB077c1",
-  "jamchaintestnet": "0x0000000000000000000000000000000000000001"
-};
+const CONTRACT_NAME = "JamMarketplace";
 
 async function deploy() {
   // Deploy
@@ -16,14 +11,8 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
   const factory = await hre.ethers.getContractFactory(CONTRACT_NAME);
-  console.log(`Deploying ${CONTRACT_NAME} with parameters: "Gamejam Main NFT" "JamNFT" "https://gamejam.com/nft/" "${PROXY_REGISTRY_ADDRESS[networkName]}" "${20}"`);
-  const contract = await factory.deploy(
-    "Gamejam Main NFT",
-    "JamNFT",
-    "https://gamejam.com/nft/",
-    PROXY_REGISTRY_ADDRESS[networkName],
-    20
-  );
+  console.log(`Deploying ${CONTRACT_NAME} with parameters: "300"`);
+  const contract = await factory.deploy(300);
   await contract.deployed();
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 

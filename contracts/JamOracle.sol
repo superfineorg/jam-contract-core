@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "./IOracle.sol";
+import "./interfaces/IOracle.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @dev Interface of gamejam .
  */
-contract SimpleOracle is IOracle, Ownable, ReentrancyGuard {
+contract JamOracle is IOracle, Ownable, ReentrancyGuard {
     mapping(address => uint256) private tokenRate; // rate token(with decimals)/USDT (with decimal 6)
 
     constructor() {}
@@ -21,7 +21,7 @@ contract SimpleOracle is IOracle, Ownable, ReentrancyGuard {
     {
         require(
             tokenAddrs.length == rate.length,
-            "SimpleOracle: addrs and amount does not same length"
+            "JamOracle: addrs and amount does not same length"
         );
         for (uint256 i = 0; i < tokenAddrs.length; i++) {
             tokenRate[tokenAddrs[i]] = rate[i];

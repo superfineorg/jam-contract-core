@@ -2,7 +2,7 @@ const hre = require("hardhat");
 const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
-const NFT_STAKING = "NFTStaking";
+const JAM_NFT_STAKING = "JamNFTStaking";
 const ERC20 = "SimpleERC20";
 const ERC721 = "SimpleERC721";
 const ERC1155 = "SimpleERC1155";
@@ -49,12 +49,12 @@ let deploy = async () => {
   await this.erc1155Contract.deployed();
   deployInfo[this.networkName][ERC1155] = this.erc1155Contract.address;
 
-  // Deploy NFTStaking
-  console.log(`Deploying ${NFT_STAKING} with parameters: "${300}" "${"2000000000000000000"}" "${ZERO_ADDRESS}"`);
-  this.nftStakingFactory = await hre.ethers.getContractFactory(NFT_STAKING);
+  // Deploy JamNFTStaking
+  console.log(`Deploying ${JAM_NFT_STAKING} with parameters: "${300}" "${"2000000000000000000"}" "${ZERO_ADDRESS}"`);
+  this.nftStakingFactory = await hre.ethers.getContractFactory(JAM_NFT_STAKING);
   this.nftStakingContract = await this.nftStakingFactory.deploy(300, "2000000000000000000", ZERO_ADDRESS);
   await this.nftStakingContract.deployed();
-  deployInfo[this.networkName][NFT_STAKING] = this.nftStakingContract.address;
+  deployInfo[this.networkName][JAM_NFT_STAKING] = this.nftStakingContract.address;
 
   // Write the result to deploy.json
   FileSystem.writeFile("deploy.json", JSON.stringify(deployInfo, null, "\t"), err => {
@@ -74,7 +74,7 @@ let setup = async () => {
     .setOperators([TESTER_ADDR], [true]);
 
   // Transfer some initial fund to the contract
-  console.log("Transferring some initial fund to the NFTStaking contract...");
+  console.log("Transferring some initial fund to the JamNFTStaking contract...");
   await this.deployer.sendTransaction({
     to: this.nftStakingContract.address,
     value: hre.ethers.utils.parseEther("80")

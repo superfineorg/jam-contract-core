@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract Vesting is Ownable, Pausable, ReentrancyGuard {
+contract JamVesting is Ownable, Pausable, ReentrancyGuard {
     struct Program {
         uint256 id;
         string metadata;
@@ -65,7 +65,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     receive() external payable {}
 
     modifier onlyOperator() {
-        require(_operators[msg.sender], "Vesting: caller is not operator");
+        require(_operators[msg.sender], "JamVesting: caller is not operator");
         _;
     }
 
@@ -167,7 +167,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     {
         require(
             operators.length == isOperators.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
@@ -179,7 +179,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     {
         require(
             programId < _allPrograms.length,
-            "Vesting: program does not exist"
+            "JamVesting: program does not exist"
         );
         _allPrograms[programId].metadata = newMetadata;
     }
@@ -197,46 +197,46 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     ) external onlyOperator {
         require(
             metadatas.length == startRegistrations.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == endRegistrations.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == initialAmounts.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == tgeUnlockPercentages.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == unlockMoments.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == unlockDistances.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         require(
             metadatas.length == milestoneUnlockPercentages.length,
-            "Vesting: lengths mismatch"
+            "JamVesting: lengths mismatch"
         );
         if (TGE == 0) {
-            require(TGE_ > 0, "Vesting: TGE must be real moment");
+            require(TGE_ > 0, "JamVesting: TGE must be real moment");
             TGE = TGE_;
-        } else require(TGE_ == TGE, "Vesting: wrong TGE moment");
+        } else require(TGE_ == TGE, "JamVesting: wrong TGE moment");
         address[] memory participants;
         for (uint256 i = 0; i < metadatas.length; i++) {
             require(
                 unlockMoments[i] >= TGE,
-                "Vesting: TGE must not happen after unlock moment"
+                "JamVesting: TGE must not happen after unlock moment"
             );
             require(
                 tgeUnlockPercentages[i] + milestoneUnlockPercentages[i] <=
                     10000,
-                "Vesting: unlock percentages cannot exceed 100%"
+                "JamVesting: unlock percentages cannot exceed 100%"
             );
             uint256 id = _allPrograms.length;
             _allPrograms.push(
@@ -275,24 +275,24 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     ) external payable onlyOperator {
         require(
             participant != address(0),
-            "Vesting: register the zero address"
+            "JamVesting: register the zero address"
         );
         require(
             programId < _allPrograms.length,
-            "Vesting: program does not exist"
+            "JamVesting: program does not exist"
         );
         Program storage program = _allPrograms[programId];
         require(
             block.timestamp >= program.startRegistration,
-            "Vesting: program is not available"
+            "JamVesting: program is not available"
         );
         require(
             block.timestamp <= program.endRegistration,
-            "Vesting: program is over"
+            "JamVesting: program is over"
         );
         require(
             msg.value <= program.availableAmount,
-            "Vesting: available amount not enough"
+            "JamVesting: available amount not enough"
         );
         _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
         _vestingInfoOf[participant].totalAtProgram[programId] += msg.value;
@@ -313,11 +313,11 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     {
         require(
             !_vestingInfoOf[participant].isInvestorAtProgram[programId],
-            "Vesting: cannot remove an investor"
+            "JamVesting: cannot remove an investor"
         );
         require(
             _vestingInfoOf[participant].removedMoment == 0,
-            "Vesting: participant already removed"
+            "JamVesting: participant already removed"
         );
         _vestingInfoOf[participant].removedMoment = block.timestamp;
         Program storage program = _allPrograms[programId];
@@ -338,7 +338,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
             programId
         ] += claimableAmount;
         (bool success, ) = payable(msg.sender).call{value: claimableAmount}("");
-        require(success, "Vesting: claim tokens failed");
+        require(success, "JamVesting: claim tokens failed");
         emit ClaimSuccessful(msg.sender, programId, claimableAmount);
     }
 
@@ -365,7 +365,7 @@ contract Vesting is Ownable, Pausable, ReentrancyGuard {
     {
         uint256 amount = address(this).balance;
         (bool success, ) = recipient.call{value: amount}("");
-        require(success, "Vesting: emergency withdraw failed");
+        require(success, "JamVesting: emergency withdraw failed");
         emit EmergencyWithdrawn(recipient, amount);
     }
 }

@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.0;
 
-import "./tokens/SimpleERC721.sol";
+import "./tokens/ERC721/SimpleERC721.sol";
 
-contract ERC721Factory {
+contract JamERC721Factory {
     SimpleERC721[] private uniqueItems;
 
     event CreateERC721(
