@@ -20,6 +20,11 @@ contract JamNFT721 is
     using Strings for uint256;
     using Counters for Counters.Counter;
 
+    struct TokenInfo {
+        uint256 tokenId;
+        string tokenURI;
+    }
+
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     uint256 public nftLimit;
@@ -103,6 +108,19 @@ contract JamNFT721 is
     function tokenByIndex(uint256 index) public view virtual returns (uint256) {
         require(index < totalSupply(), "JamNFT721: global index out of bounds");
         return _allTokens[index];
+    }
+
+    function getOwnedTokens(address user)
+        external
+        view
+        returns (TokenInfo[] memory)
+    {
+        TokenInfo[] memory ownedTokens = new TokenInfo[](balanceOf(user));
+        for (uint256 i = 0; i < balanceOf(user); i++) {
+            uint256 tokenId = tokenOfOwnerByIndex(user, i);
+            ownedTokens[i] = TokenInfo(tokenId, tokenURI(tokenId));
+        }
+        return ownedTokens;
     }
 
     function setBaseTokenURI(string memory baseTokenURI_) external onlyOwner {
