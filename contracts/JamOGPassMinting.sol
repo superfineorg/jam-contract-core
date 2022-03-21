@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "./tokens/ERC721/JamOGPass.sol";
 import "./tokens/ERC721/JamSuperHappyFrens.sol";
 
-contract JamOGPassMinting {
+contract JamOGPassMinting is Ownable {
     JamOGPass public jamOGPassContract;
     JamSuperHappyFrens public jamSuperHappyFrensContract;
     uint256 public mintingFee;
@@ -56,5 +57,14 @@ contract JamOGPassMinting {
             ""
         );
         require(success, "JamOGPassMinting: return money failed");
+    }
+
+    function reclaimEther(address payable recipient) external onlyOwner {
+        require(
+            recipient != address(0),
+            "JamOGPassMinting: cannot reclaim to zero address"
+        );
+        (bool success, ) = recipient.call{value: address(this).balance}("");
+        require(success, "JamOGPassMinting: reclaim failed");
     }
 }

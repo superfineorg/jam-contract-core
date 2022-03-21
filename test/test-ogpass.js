@@ -119,4 +119,11 @@ describe("Test OGPass and Super Happy Frens", () => {
       expect(ownedTokens[i].tokenURI).to.equal(`https://gamejam.com/og-pass/${i + 1}.json`);
     }
   });
+
+  it("Reclaim money", async () => {
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .reclaimEther(this.deployer.address);
+  });
 });
