@@ -28,12 +28,24 @@ contract JamNFT721 is
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     uint256 public nftLimit;
-    string private _baseTokenURI;
-    uint256[] private _allTokens; // Array with all token ids, used for enumeration
-    mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
-    mapping(uint256 => uint256) private _ownedTokensIndex; // Mapping from token ID to index of the owner tokens list
-    mapping(uint256 => uint256) private _allTokensIndex; // Mapping from token id to position in the allTokens array
+
     Counters.Counter private _nextTokenId;
+    string private _baseTokenURI;
+
+    // Array with all token ids, used for enumeration
+    uint256[] private _allTokens;
+
+    // Mapping from an owner address and the token index to the token ID
+    mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
+
+    // Mapping from token ID to index of the owner tokens list
+    mapping(uint256 => uint256) private _ownedTokensIndex;
+
+    // Mapping from token ID to position in the allTokens array
+    mapping(uint256 => uint256) private _allTokensIndex;
+
+    // Mapping from token ID to its URI
+    mapping(uint256 => string) private _tokenURIs;
 
     constructor(
         string memory name_,
@@ -78,6 +90,7 @@ contract JamNFT721 is
         returns (string memory)
     {
         require(_exists(tokenId), "JamNFT721: token does not exist");
+        if (bytes(_tokenURIs[tokenId]).length != 0) return _tokenURIs[tokenId];
         return
             string(
                 abi.encodePacked(
@@ -130,13 +143,14 @@ contract JamNFT721 is
     function mint(
         address to,
         uint256 tokenId,
-        string memory data
+        string memory uri
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
         require(tokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
+        _tokenURIs[tokenId] = uri;
         _safeMint(to, tokenId);
     }
 

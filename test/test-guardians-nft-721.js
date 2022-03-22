@@ -45,7 +45,7 @@ describe("Test JamNFT721 contract", () => {
     await this.nftFactory
       .connect(this.minter)
       .attach(this.nftContract.address)
-      .mint(this.user1.address, 3, "#3");
+      .mint(this.user1.address, 3, "https://gamejam.com/nft-mint/3");
     let totalSupply = await this.nftContract.totalSupply();
     let tokenId = await this.nftContract.tokenOfOwnerByIndex(this.user1.address, 0);
     let tokenByIndex = await this.nftContract.tokenByIndex(0);
@@ -54,7 +54,7 @@ describe("Test JamNFT721 contract", () => {
     expect(totalSupply.toString()).to.equal("1");
     expect(tokenId.toString()).to.equal("3");
     expect(tokenByIndex.toString()).to.equal("3");
-    expect(tokenUri).to.equal("https://gamejam.com/nft/3.json");
+    expect(tokenUri).to.equal("https://gamejam.com/nft-mint/3");
     expect(baseUri).to.equal("https://gamejam.com/nft/");
   });
 
