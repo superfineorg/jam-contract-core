@@ -123,15 +123,19 @@ contract JamNFT721 is
         return _allTokens[index];
     }
 
-    function getOwnedTokens(address user)
-        external
-        view
-        returns (TokenInfo[] memory)
-    {
-        TokenInfo[] memory ownedTokens = new TokenInfo[](balanceOf(user));
-        for (uint256 i = 0; i < balanceOf(user); i++) {
+    function getOwnedTokens(
+        address user,
+        uint256 fromIndex,
+        uint256 toIndex
+    ) external view returns (TokenInfo[] memory) {
+        uint256 lastIndex = toIndex;
+        if (lastIndex >= balanceOf(user)) lastIndex = balanceOf(user) - 1;
+        require(fromIndex <= lastIndex, "JamNFT721: invalid query range");
+        uint256 numNFTs = lastIndex - fromIndex + 1;
+        TokenInfo[] memory ownedTokens = new TokenInfo[](numNFTs);
+        for (uint256 i = fromIndex; i <= lastIndex; i++) {
             uint256 tokenId = tokenOfOwnerByIndex(user, i);
-            ownedTokens[i] = TokenInfo(tokenId, tokenURI(tokenId));
+            ownedTokens[i - fromIndex] = TokenInfo(tokenId, tokenURI(tokenId));
         }
         return ownedTokens;
     }
@@ -144,7 +148,7 @@ contract JamNFT721 is
         address to,
         uint256 tokenId,
         string memory uri
-    ) public virtual {
+    ) public {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
@@ -159,14 +163,37 @@ contract JamNFT721 is
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
-        require(
-            _nextTokenId.current() < nftLimit,
-            "JamNFT721: Maximum NFTs minted"
-        );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
         _nextTokenId.increment();
+        require(currentTokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
         _safeMint(to, currentTokenId);
+    }
+
+    function mintBulk(
+        address[] memory recipients,
+        uint256[] memory tokenIds,
+        string[] memory uris
+    ) external {
+        require(
+            hasRole(MINTER_ROLE, _msgSender()),
+            "JamNFT721: must have minter role to mint"
+        );
+        require(
+            recipients.length == tokenIds.length,
+            "JamNFT721: lengths mismatch"
+        );
+        require(
+            recipients.length == uris.length,
+            "JamNFT721: lengths mismatch"
+        );
+        for (uint256 i = 0; i < recipients.length; i++)
+            mint(recipients[i], tokenIds[i], uris[i]);
+    }
+
+    function burn(uint256 tokenId) public override {
+        delete _tokenURIs[tokenId];
+        super.burn(tokenId);
     }
 
     function pause() public virtual {

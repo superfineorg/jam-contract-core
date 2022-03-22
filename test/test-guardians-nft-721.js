@@ -79,11 +79,11 @@ describe("Test JamNFT721 contract", () => {
     await this.nftFactory
       .connect(this.minter)
       .attach(this.nftContract.address)
-      .mintTo(this.user2.address);
-    await this.nftFactory
-      .connect(this.minter)
-      .attach(this.nftContract.address)
-      .mintTo(this.user1.address);
+      .mintBulk(
+        [this.user2.address, this.user1.address],
+        [2, 4],
+        ["https://test.com/2.json", "https://test.gamejam.com/4.json"]
+      );
     let balance1 = await this.nftContract.balanceOf(this.user1.address);
     let balance2 = await this.nftContract.balanceOf(this.user2.address);
     let balance3 = await this.nftContract.balanceOf(this.user3.address);
@@ -107,7 +107,7 @@ describe("Test JamNFT721 contract", () => {
   it("Check URI of some NFTs", async () => {
     let tokenUri = await this.nftContract.tokenURI(4);
     await expect(this.nftContract.tokenURI(5)).to.be.revertedWith("JamNFT721: token does not exist");
-    expect(tokenUri).to.equal("https://gamejam.com/nft/4.json");
+    expect(tokenUri).to.equal("https://test.gamejam.com/4.json");
   });
 
   it("Burn an NFT", async () => {
@@ -150,6 +150,10 @@ describe("Test JamNFT721 contract", () => {
       .connect(this.minter)
       .attach(this.nftContract.address)
       .mintTo(this.user3.address);
+    await this.nftFactory
+      .connect(this.minter)
+      .attach(this.nftContract.address)
+      .mintTo(this.user2.address);
     await expect(
       this.nftFactory
         .connect(this.minter)
@@ -157,7 +161,7 @@ describe("Test JamNFT721 contract", () => {
         .mintTo(this.user2.address)
     ).to.be.revertedWith("JamNFT721: Maximum NFTs minted");
     let totalSupply = await this.nftContract.totalSupply();
-    expect(totalSupply.toString()).to.equal("6");
+    expect(totalSupply.toString()).to.equal("7");
   });
 
   it("Re-set base URI", async () => {
@@ -170,23 +174,23 @@ describe("Test JamNFT721 contract", () => {
   });
 
   it("Check owned tokens", async () => {
-    let user1Tokens = await this.nftContract.getOwnedTokens(this.user1.address);
-    let user2Tokens = await this.nftContract.getOwnedTokens(this.user2.address);
-    let user3Tokens = await this.nftContract.getOwnedTokens(this.user3.address);
+    let user1Tokens = await this.nftContract.getOwnedTokens(this.user1.address, 0, 4);
+    let user2Tokens = await this.nftContract.getOwnedTokens(this.user2.address, 0, 6);
+    let user3Tokens = await this.nftContract.getOwnedTokens(this.user3.address, 1, 3);
     expect(user1Tokens.length).to.equal(2);
     expect(user1Tokens[0].tokenId.toString()).to.equal("4");
-    expect(user1Tokens[0].tokenURI).to.equal("https://nft-gamejam.com/721/4.json");
-    expect(user1Tokens[1].tokenId.toString()).to.equal("5");
-    expect(user1Tokens[1].tokenURI).to.equal("https://nft-gamejam.com/721/5.json");
-    expect(user2Tokens.length).to.equal(2);
+    expect(user1Tokens[0].tokenURI).to.equal("https://test.gamejam.com/4.json");
+    expect(user1Tokens[1].tokenId.toString()).to.equal("3");
+    expect(user1Tokens[1].tokenURI).to.equal("https://nft-gamejam.com/721/3.json");
+    expect(user2Tokens.length).to.equal(3);
     expect(user2Tokens[0].tokenId.toString()).to.equal("1");
     expect(user2Tokens[0].tokenURI).to.equal("https://nft-gamejam.com/721/1.json");
     expect(user2Tokens[1].tokenId.toString()).to.equal("2");
-    expect(user2Tokens[1].tokenURI).to.equal("https://nft-gamejam.com/721/2.json");
-    expect(user3Tokens.length).to.equal(2);
-    expect(user3Tokens[0].tokenId.toString()).to.equal("0");
-    expect(user3Tokens[0].tokenURI).to.equal("https://nft-gamejam.com/721/0.json");
-    expect(user3Tokens[1].tokenId.toString()).to.equal("6");
-    expect(user3Tokens[1].tokenURI).to.equal("https://nft-gamejam.com/721/6.json");
+    expect(user2Tokens[1].tokenURI).to.equal("https://test.com/2.json");
+    expect(user2Tokens[2].tokenId.toString()).to.equal("6");
+    expect(user2Tokens[2].tokenURI).to.equal("https://nft-gamejam.com/721/6.json");
+    expect(user3Tokens.length).to.equal(1);
+    expect(user3Tokens[0].tokenId.toString()).to.equal("5");
+    expect(user3Tokens[0].tokenURI).to.equal("https://nft-gamejam.com/721/5.json");
   });
 });
