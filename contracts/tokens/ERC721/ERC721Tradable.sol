@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "./common/meta-transactions/ContentMixin.sol";
-import "./common/meta-transactions/NativeMetaTransaction.sol";
+import "../../common/meta-transactions/ContentMixin.sol";
+import "../../common/meta-transactions/NativeMetaTransaction.sol";
 
 contract OwnableDelegateProxy {}
 

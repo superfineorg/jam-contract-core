@@ -42,3 +42,6 @@ bin
 artifacts
 cache
 .env
+
+# Mac
+.DS_Store
