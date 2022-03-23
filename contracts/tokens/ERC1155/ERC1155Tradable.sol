@@ -75,7 +75,13 @@ contract ERC1155Tradable is
         _initializeEIP712(name);
     }
 
-    function uri(uint256 _id) public view override returns (string memory) {
+    function uri(uint256 _id)
+        public
+        view
+        virtual
+        override
+        returns (string memory)
+    {
         require(_exists(_id), "ERC1155Tradable#uri: NONEXISTENT_TOKEN");
         // We have to convert string to bytes to check for existence
         bytes memory customUriBytes = bytes(customUri[_id]);
@@ -221,6 +227,7 @@ contract ERC1155Tradable is
     function isApprovedForAll(address _owner, address _operator)
         public
         view
+        virtual
         override
         returns (bool isOperator)
     {
@@ -258,7 +265,13 @@ contract ERC1155Tradable is
     /**
      * This is used instead of msg.sender as transactions won't be sent by the original token owner, but by OpenSea.
      */
-    function _msgSender() internal view override returns (address sender) {
+    function _msgSender()
+        internal
+        view
+        virtual
+        override
+        returns (address sender)
+    {
         return ContextMixin.msgSender();
     }
 }

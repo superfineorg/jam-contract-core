@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-contract ERC721MinterBurnerPauser is
+contract JamERC721Bridgeable is
     Context,
     AccessControlEnumerable,
     ERC721Enumerable,
@@ -55,7 +55,7 @@ contract ERC721MinterBurnerPauser is
     {
         require(
             _exists(tokenId),
-            "ERC721MinterBurnerPauser: URI set of nonexistent token"
+            "JamERC721Bridgeable: URI set of nonexistent token"
         );
         _tokenURIs[tokenId] = _tokenURI;
     }
@@ -68,7 +68,7 @@ contract ERC721MinterBurnerPauser is
     {
         require(
             _exists(tokenId),
-            "ERC721MinterBurnerPauser: URI query for nonexistent token"
+            "JamERC721Bridgeable: URI query for nonexistent token"
         );
 
         string memory _tokenURI = _tokenURIs[tokenId];
@@ -103,7 +103,7 @@ contract ERC721MinterBurnerPauser is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "ERC721MinterBurnerPauser: must have minter role to mint"
+            "JamERC721Bridgeable: must have minter role to mint"
         );
 
         // We cannot just use balanceOf to create the new tokenId because tokens
@@ -124,7 +124,7 @@ contract ERC721MinterBurnerPauser is
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "ERC721MinterBurnerPauser: must have pauser role to pause"
+            "JamERC721Bridgeable: must have pauser role to pause"
         );
         _pause();
     }
@@ -141,7 +141,7 @@ contract ERC721MinterBurnerPauser is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "ERC721MinterBurnerPauser: must have pauser role to unpause"
+            "JamERC721Bridgeable: must have pauser role to unpause"
         );
         _unpause();
     }
