@@ -78,7 +78,12 @@ abstract contract ERC721Tradable is
         virtual
         override
         returns (string memory)
-    {}
+    {
+        return
+            string(
+                abi.encodePacked(baseTokenURI(), Strings.toString(_tokenId))
+            );
+    }
 
     /**
      * Override isApprovedForAll to whitelist user's OpenSea proxy accounts to enable gas-less listings.
