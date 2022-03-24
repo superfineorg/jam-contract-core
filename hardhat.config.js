@@ -6,18 +6,20 @@ require('@openzeppelin/hardhat-upgrades');
 // require('@openzeppelin/hardhat-defender');
 require("@nomiclabs/hardhat-web3");
 
-const MNEMONIC = process.env.MNEMONIC;
-const INFURA_API_KEY = process.env.INFURA_API_KEY;
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
-const BSC_API_KEY = process.env.BSC_API_KEY;
-const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
-const ADDRESS_1 = process.env.ADDRESS_1;
+const ETHEREUM_PROVIDER = process.env.ETHEREUM_PROVIDER;
 const BSC_PROVIDER = process.env.BSC_PROVIDER;
+const JAMCHAIN_PROVIDER = process.env.JAMCHAIN_PROVIDER;
+const RINKEBY_PROVIDER = process.env.RINKEBY_PROVIDER;
+const GOERLI_PROVIDER = process.env.GOERLI_PROVIDER;
 const BSC_TESTNET_PROVIDER = process.env.BSC_TESTNET_PROVIDER;
 const JAMCHAIN_TESTNET_PROVIDER = process.env.JAMCHAIN_TESTNET_PROVIDER;
-const JAMCHAIN_PROVIDER = process.env.JAMCHAIN_PROVIDER;
 const POLYGON_TESTNET_PROVIDER = process.env.POLYGON_TESTNET_PROVIDER;
-const PRIVATE_KEY = process.env.PRIVATE_KEY_1;
+const BSC_API_KEY = process.env.BSC_API_KEY;
+const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY;
+const POLYGON_API_KEY = process.env.POLYGON_API_KEY;
+const ADDRESS = process.env.ADDRESS;
+const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const MNEMONIC = process.env.MNEMONIC;
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -31,63 +33,63 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 module.exports = {
   defaultNetwork: "hardhat",
   networks: {
-    hardhat: {},
+    eth: {
+      url: ETHEREUM_PROVIDER,
+      chainId: 1,
+      gas: 8000000,
+      accounts: [PRIVATE_KEY]
+    },
+    bsc: {
+      url: BSC_PROVIDER,
+      chainId: 56,
+      gas: 8000000,
+      accounts: [PRIVATE_KEY]
+    },
     jamchain: {
       url: JAMCHAIN_PROVIDER,
       chainId: 2077,
       gas: 5500000,
       accounts: [PRIVATE_KEY]
     },
-    jamchaintestnet: {
-      url: JAMCHAIN_TESTNET_PROVIDER,
-      chainId: 2710,
-      gas: 5500000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1
-    },
     rinkeby: {
-      url: "https://rinkeby.infura.io/v3/" + INFURA_API_KEY,
+      url: RINKEBY_PROVIDER,
       chainId: 4,
       gas: 5500000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1
+      accounts: [PRIVATE_KEY]
     },
     goerli: {
-      url: "https://goerli.infura.io/v3/" + INFURA_API_KEY,
+      url: GOERLI_PROVIDER,
       chainId: 5,
       gas: 5500000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1
+      accounts: [PRIVATE_KEY]
     },
     bsctestnet: {
       url: BSC_TESTNET_PROVIDER,
       chainId: 97,
       gas: 8000000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1,
+      accounts: [PRIVATE_KEY],
       networkCheckTimeout: 1000000000,
       timeoutBlocks: 200000000,
       skipDryRun: true,
+    },
+    jamchaintestnet: {
+      url: JAMCHAIN_TESTNET_PROVIDER,
+      chainId: 2710,
+      gas: 5500000,
+      accounts: [PRIVATE_KEY]
     },
     polygontestnet: {
       url: POLYGON_TESTNET_PROVIDER,
       chainId: 80001,
       gas: 5500000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1
+      accounts: [PRIVATE_KEY]
     },
+    hardhat: {},
     localhost: {
       url: "http://127.0.0.1:7545",
-      accounts: { mnemonic: MNEMONIC },
+      accounts: [PRIVATE_KEY],
       gasLimit: 6000000000,
       defaultBalanceEther: 10,
-    },
-    bsc: {
-      url: BSC_PROVIDER,
-      chainId: 56,
-      gas: 8000000,
-      accounts: { mnemonic: MNEMONIC },
-      from: ADDRESS_1
     }
   },
   etherscan: {
