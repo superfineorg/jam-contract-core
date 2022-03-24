@@ -13,8 +13,8 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
   const factory = await hre.ethers.getContractFactory(CONTRACT_NAME);
-  console.log(`Deploying ${CONTRACT_NAME} with parameters: "https://assets.gamejam.co/platform/GuardianGlory/nft/items/"`);
-  const contract = await factory.deploy("GuardianOfGlory", "GOG", "https://assets.gamejam.co/platform/GuardianGlory/nft/items/", "0x0000000000000000000000000000000000000001");
+  console.log(`Deploying ${CONTRACT_NAME} with parameters: "${OWNER}" "${MINTER}" "https://gamejam.com/nft1155/"`);
+  const contract = await factory.deploy(OWNER, MINTER, "https://gamejam.com/nft1155/");
   await contract.deployed();
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 
