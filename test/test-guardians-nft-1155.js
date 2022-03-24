@@ -3,7 +3,7 @@ require('@nomiclabs/hardhat-ethers');
 const hre = require('hardhat');
 const { soliditySha3 } = require("web3-utils");
 const { expect } = require("chai");
-const GAMEJAM_NFT_1155 = "JamNFT1155";
+const GUARDIAN_OF_GLORY_NFT = "GuardianOfGloryItems";
 
 before("Deploy JamNFT1155 contract", async () => {
   // Prepare parameters
@@ -13,8 +13,8 @@ before("Deploy JamNFT1155 contract", async () => {
   this.user = user;
 
   // Deploy the JamNFT1155 contract
-  this.nft1155Factory = await hre.ethers.getContractFactory(GAMEJAM_NFT_1155);
-  this.nft1155Contract = await this.nft1155Factory.deploy("https://gamejam.com/nft1155/");
+  this.nft1155Factory = await hre.ethers.getContractFactory(GUARDIAN_OF_GLORY_NFT);
+  this.nft1155Contract = await this.nft1155Factory.deploy(deployer.address, minter.address, "https://gamejam.com/nft1155/");
   await this.nft1155Contract.deployed();
 });
 
@@ -36,7 +36,7 @@ describe("Test JamNFT1155 contract", () => {
       .mint(this.user.address, 7, 20, soliditySha3("First minting time"));
     let balance = await this.nft1155Contract.balanceOf(this.user.address, 7);
     let uri = await this.nft1155Contract.uri(7);
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 3);
     expect(balance.toString()).to.equal("20");
     expect(uri).to.equal("https://gamejam.com/nft1155/7.json");
     expect(ownedNFTs.length).to.equal(1);
@@ -55,7 +55,7 @@ describe("Test JamNFT1155 contract", () => {
       .attach(this.nft1155Contract.address)
       .mint(this.user.address, 98, 41, soliditySha3("Third minting time"));
     let balance = await this.nft1155Contract.balanceOf(this.user.address, 15);
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 7);
     expect(balance.toString()).to.equal("6");
     expect(ownedNFTs.length).to.equal(3);
     expect(ownedNFTs[1].tokenId.toString()).to.equal("15");
@@ -71,7 +71,7 @@ describe("Test JamNFT1155 contract", () => {
       .connect(this.deployer)
       .attach(this.nft1155Contract.address)
       .setBaseTokenURI("https://nft-gamejam.com/1155/");
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 19);
     expect(ownedNFTs.length).to.equal(3);
     expect(ownedNFTs[1].uri).to.equal("https://nft-gamejam.com/1155/15.json");
   });
@@ -89,7 +89,7 @@ describe("Test JamNFT1155 contract", () => {
       .connect(this.minter)
       .attach(this.nft1155Contract.address)
       .burn(this.user.address, 15, 4);
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 5);
     expect(ownedNFTs.length).to.equal(3);
     expect(ownedNFTs[1].quantity.toString()).to.equal("2");
   });
@@ -104,7 +104,7 @@ describe("Test JamNFT1155 contract", () => {
         [43, 32, 21],
         soliditySha3("Forth minting time")
       );
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 20);
     expect(ownedNFTs.length).to.equal(6);
     expect(ownedNFTs[3].tokenId.toString()).to.equal("12");
     expect(ownedNFTs[3].quantity.toString()).to.equal("43");
@@ -122,7 +122,7 @@ describe("Test JamNFT1155 contract", () => {
       .connect(this.minter)
       .attach(this.nft1155Contract.address)
       .burn(this.user.address, 12, 43);
-    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address);
+    let ownedNFTs = await this.nft1155Contract.getOwnedTokens(this.user.address, 0, 12);
     expect(ownedNFTs.length).to.equal(5);
     expect(ownedNFTs[3].tokenId.toString()).to.equal("23");
     expect(ownedNFTs[3].quantity.toString()).to.equal("32");

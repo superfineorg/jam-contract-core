@@ -34,20 +34,25 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
             );
     }
 
-    function getOwnedTokens(address user)
-        external
-        view
-        returns (TokenInfo[] memory)
-    {
+    function getOwnedTokens(
+        address user,
+        uint256 fromIndex,
+        uint256 toIndex
+    ) external view returns (TokenInfo[] memory) {
+        uint256 lastIndex = toIndex;
+        if (lastIndex >= _mintedTokenIds.length)
+            lastIndex = _mintedTokenIds.length - 1;
+        require(fromIndex <= lastIndex, "JamNFT1155: invalid query range");
+
         // Get the number of owned ERC1155 NFTs
         uint256 numOwnedNFTs = 0;
-        for (uint256 i = 0; i < _mintedTokenIds.length; i++)
+        for (uint256 i = fromIndex; i <= lastIndex; i++)
             if (balanceOf(user, _mintedTokenIds[i]) > 0) numOwnedNFTs++;
 
         // Query all owned ERC1155 NFTs
         TokenInfo[] memory ownedNFTs = new TokenInfo[](numOwnedNFTs);
         uint256 nftCount = 0;
-        for (uint256 j = 0; j < _mintedTokenIds.length; j++) {
+        for (uint256 j = fromIndex; j <= lastIndex; j++) {
             uint256 tokenId = _mintedTokenIds[j];
             if (balanceOf(user, tokenId) > 0) {
                 ownedNFTs[nftCount] = TokenInfo(
@@ -76,7 +81,7 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
         uint256[] memory tokenIds,
         uint256[] memory quantities,
         bytes memory data
-    ) internal virtual override {
+    ) internal override {
         require(
             tokenIds.length == quantities.length,
             "JamNFT1155: lengths mismatch"

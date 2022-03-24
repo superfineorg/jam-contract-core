@@ -2,7 +2,9 @@ const hre = require("hardhat");
 const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
-const CONTRACT_NAME = "JamNFT1155";
+const CONTRACT_NAME = "GuardianOfGloryItems";
+const OWNER = "0xb23ff606F4D9bbBBf81ca1573CD43793f95C27e1";
+const MINTER = "0xb23ff606F4D9bbBBf81ca1573CD43793f95C27e1";
 
 async function deploy() {
   // Deploy
@@ -11,8 +13,8 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
   const factory = await hre.ethers.getContractFactory(CONTRACT_NAME);
-  console.log(`Deploying ${CONTRACT_NAME} with parameters: "https://gamejam.com/nft1155/"`);
-  const contract = await factory.deploy("https://gamejam.com/nft1155/");
+  console.log(`Deploying ${CONTRACT_NAME} with parameters: "${OWNER}" "${MINTER}" "https://gamejam.com/nft1155/"`);
+  const contract = await factory.deploy(OWNER, MINTER, "https://gamejam.com/nft1155/");
   await contract.deployed();
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 
