@@ -3,11 +3,9 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/utils/Strings.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
-import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
-import "./ERC1155Tradable.sol";
+import "@openzeppelin/contracts/token/ERC1155/presets/ERC1155PresetMinterPauser.sol";
 
-contract JamNFT1155 is ERC1155Burnable, ERC1155Pausable, ERC1155Tradable {
+contract JamNFT1155 is ERC1155PresetMinterPauser {
     using Strings for uint256;
 
     struct TokenInfo {
@@ -19,71 +17,37 @@ contract JamNFT1155 is ERC1155Burnable, ERC1155Pausable, ERC1155Tradable {
     uint256[] private _mintedTokenIds;
     mapping(uint256 => bool) private _isTokenIdMinted;
 
-    constructor(
-        string memory name,
-        string memory symbol,
-        string memory uri_,
-        address proxyRegistryAddress
-    ) ERC1155Tradable(name, symbol, uri_, proxyRegistryAddress) {}
+    constructor(string memory uri_) ERC1155PresetMinterPauser(uri_) {}
 
-    function _msgSender()
-        internal
-        view
-        override(Context, ERC1155Tradable)
-        returns (address)
-    {
-        return ERC1155Tradable._msgSender();
-    }
-
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override(ERC1155, ERC1155Tradable)
-        returns (bool isOperator)
-    {
-        return ERC1155Tradable.isApprovedForAll(owner, operator);
-    }
-
-    function uri(uint256 tokenId)
-        public
-        view
-        override(ERC1155, ERC1155Tradable)
-        returns (string memory)
-    {
+    function uri(uint256 tokenId) public view override returns (string memory) {
         require(
-            _isTokenIdMinted[tokenId] && _exists(tokenId),
+            _isTokenIdMinted[tokenId],
             "JamNFT1155: URI query for non-existent token"
         );
-        if (bytes(customUri[tokenId]).length > 0) return customUri[tokenId];
         return
             string(
                 abi.encodePacked(
-                    ERC1155Tradable.uri(tokenId),
+                    super.uri(tokenId),
                     Strings.toString(tokenId),
                     ".json"
                 )
             );
     }
 
-    function getOwnedTokens(
-        address user,
-        uint256 fromIndex,
-        uint256 toIndex
-    ) external view returns (TokenInfo[] memory) {
-        uint256 lastIndex = toIndex;
-        if (lastIndex >= _mintedTokenIds.length)
-            lastIndex = _mintedTokenIds.length - 1;
-        require(fromIndex <= lastIndex, "JamNFT1155: invalid query range");
-
+    function getOwnedTokens(address user)
+        external
+        view
+        returns (TokenInfo[] memory)
+    {
         // Get the number of owned ERC1155 NFTs
         uint256 numOwnedNFTs = 0;
-        for (uint256 i = fromIndex; i <= lastIndex; i++)
+        for (uint256 i = 0; i < _mintedTokenIds.length; i++)
             if (balanceOf(user, _mintedTokenIds[i]) > 0) numOwnedNFTs++;
 
         // Query all owned ERC1155 NFTs
         TokenInfo[] memory ownedNFTs = new TokenInfo[](numOwnedNFTs);
         uint256 nftCount = 0;
-        for (uint256 j = fromIndex; j <= lastIndex; j++) {
+        for (uint256 j = 0; j < _mintedTokenIds.length; j++) {
             uint256 tokenId = _mintedTokenIds[j];
             if (balanceOf(user, tokenId) > 0) {
                 ownedNFTs[nftCount] = TokenInfo(
@@ -97,17 +61,12 @@ contract JamNFT1155 is ERC1155Burnable, ERC1155Pausable, ERC1155Tradable {
         return ownedNFTs;
     }
 
-    function setBaseTokenURI(string memory baseTokenURI_) external onlyOwner {
+    function setBaseTokenURI(string memory baseTokenURI_) external {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            "JamNFT1155: caller is not an admin"
+        );
         _setURI(baseTokenURI_);
-    }
-
-    function burn(
-        address account,
-        uint256 tokenId,
-        uint256 quantity
-    ) public override {
-        if (balanceOf(account, tokenId) == quantity) delete customUri[tokenId];
-        ERC1155Burnable.burn(account, tokenId, quantity);
     }
 
     function _beforeTokenTransfer(
@@ -117,7 +76,7 @@ contract JamNFT1155 is ERC1155Burnable, ERC1155Pausable, ERC1155Tradable {
         uint256[] memory tokenIds,
         uint256[] memory quantities,
         bytes memory data
-    ) internal virtual override(ERC1155, ERC1155Pausable) {
+    ) internal virtual override {
         require(
             tokenIds.length == quantities.length,
             "JamNFT1155: lengths mismatch"
@@ -128,7 +87,7 @@ contract JamNFT1155 is ERC1155Burnable, ERC1155Pausable, ERC1155Tradable {
                     _isTokenIdMinted[tokenIds[i]] = true;
                     _mintedTokenIds.push(tokenIds[i]);
                 }
-        ERC1155Pausable._beforeTokenTransfer(
+        super._beforeTokenTransfer(
             operator,
             from,
             to,
