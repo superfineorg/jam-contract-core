@@ -22,5 +22,7 @@
 		"JamMarketplace": "0x1E4C2E228DB96De8Ad4538180ebe6d4530259A03",
 		"GuardianOfGloryItems": "0x90a30c7d81d6bCc331EcF9ddfE2916D5a69D8284"
 	},
-	"jamchain": {}
+	"jamchain": {
+		"GuardianOfGloryItems": "0x4779fCBC4164132F841855F3f1f47E62C6C2f954"
+	}
 }
