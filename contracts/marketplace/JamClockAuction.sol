@@ -5,7 +5,7 @@ pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "./utils/HasNoEther.sol";
+import "../utils/HasNoEther.sol";
 
 contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
     // The information of an auction
