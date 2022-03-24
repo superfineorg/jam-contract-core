@@ -3,8 +3,8 @@ const FileSystem = require("fs");
 const deployInfo = require("../deploy.json");
 
 const CONTRACT_NAME = "GuardianOfGloryItems";
-const OWNER = "0xb23ff606F4D9bbBBf81ca1573CD43793f95C27e1";
-const MINTER = "0xb23ff606F4D9bbBBf81ca1573CD43793f95C27e1";
+const OWNER = "0x4d50Edd2273cB1f666d53f7a15785f4F79ea0EAA";
+const MINTER = "0x03B301BEA83eef1eB74136a57Ed59F9724387F79";
 
 async function deploy() {
   // Deploy
@@ -13,8 +13,8 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
   const factory = await hre.ethers.getContractFactory(CONTRACT_NAME);
-  console.log(`Deploying ${CONTRACT_NAME} with parameters: "${OWNER}" "${MINTER}" "https://gamejam.com/nft1155/"`);
-  const contract = await factory.deploy(OWNER, MINTER, "https://gamejam.com/nft1155/");
+  console.log(`Deploying ${CONTRACT_NAME} with parameters: "${OWNER}" "${MINTER}" "https://assets.gamejam.co/platform/GuardianGlory/nft/items/"`);
+  const contract = await factory.deploy(OWNER, MINTER, "https://assets.gamejam.co/platform/GuardianGlory/nft/items/");
   await contract.deployed();
   console.log(`${CONTRACT_NAME} deployed address: ${contract.address}`);
 

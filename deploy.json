@@ -21,5 +21,6 @@
 		"JamNFT1155": "0x3543ec0d8543c80f904d06354c43FB0745f439d8",
 		"JamMarketplace": "0x1E4C2E228DB96De8Ad4538180ebe6d4530259A03",
 		"GuardianOfGloryItems": "0x90a30c7d81d6bCc331EcF9ddfE2916D5a69D8284"
-	}
+	},
+	"jamchain": {}
 }

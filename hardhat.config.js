@@ -15,7 +15,9 @@ const ADDRESS_1 = process.env.ADDRESS_1;
 const BSC_PROVIDER = process.env.BSC_PROVIDER;
 const BSC_TESTNET_PROVIDER = process.env.BSC_TESTNET_PROVIDER;
 const JAMCHAIN_TESTNET_PROVIDER = process.env.JAMCHAIN_TESTNET_PROVIDER;
+const JAMCHAIN_PROVIDER = process.env.JAMCHAIN_PROVIDER;
 const POLYGON_TESTNET_PROVIDER = process.env.POLYGON_TESTNET_PROVIDER;
+const PRIVATE_KEY = process.env.PRIVATE_KEY_1;
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -30,6 +32,12 @@ module.exports = {
   defaultNetwork: "hardhat",
   networks: {
     hardhat: {},
+    jamchain: {
+      url: JAMCHAIN_PROVIDER,
+      chainId: 2077,
+      gas: 5500000,
+      accounts: [PRIVATE_KEY]
+    },
     jamchaintestnet: {
       url: JAMCHAIN_TESTNET_PROVIDER,
       chainId: 2710,
