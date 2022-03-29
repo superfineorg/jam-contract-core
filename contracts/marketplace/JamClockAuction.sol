@@ -3,11 +3,10 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "../utils/HasNoEther.sol";
+import "./JamMarketplaceHelpers.sol";
 
-contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
+contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     // The information of an auction
     struct Auction {
         address seller;
@@ -16,9 +15,6 @@ contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
         uint64 duration;
         uint64 startedAt;
     }
-
-    // Cut owner takes on each auction. Values 0 - 10,000 map to 0% - 100%
-    uint256 public ownerCut;
 
     // Mapping from (NFT address + token ID) to the NFT's auction.
     mapping(address => mapping(uint256 => Auction)) public auctions;
@@ -50,12 +46,10 @@ contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
 
     event AuctionCancelled(address indexed nftAddress, uint256 indexed tokenId);
 
-    constructor(uint256 ownerCut_) {
-        require(
-            ownerCut_ <= 10000,
-            "JamClockAuction: owner cut cannot exceed 100%"
-        );
-        ownerCut = ownerCut_;
+    constructor(address hubAddress, uint256 ownerCut_)
+        JamMarketplaceHelpers(hubAddress, ownerCut_)
+    {
+        marketplaceId = keccak256("JAM_CLOCK_AUCTION");
     }
 
     receive() external payable {}
@@ -117,6 +111,20 @@ contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
         Auction storage auction = auctions[nftAddress][tokenId];
         require(_isOnAuction(auction), "JamClockAuction: auction not exists");
         return _getCurrentPrice(auction);
+    }
+
+    /**
+     * @dev Check if this auction is currently cancelable
+     * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
+     * @param tokenId - ID of token to auction
+     */
+    function isAuctionCancelable(address nftAddress, uint256 tokenId)
+        external
+        pure
+        override
+        returns (bool)
+    {
+        return true;
     }
 
     /**
@@ -218,7 +226,10 @@ contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
      */
-    function cancelAuction(address nftAddress, uint256 tokenId) external {
+    function cancelAuction(address nftAddress, uint256 tokenId)
+        external
+        override
+    {
         Auction storage auction = auctions[nftAddress][tokenId];
         require(_isOnAuction(auction), "JamClockAuction: auction not exists");
         require(
@@ -436,6 +447,16 @@ contract JamClockAuction is HasNoEther, Pausable, ReentrancyGuard {
             uint256 sellerProceeds = price - auctioneerCut;
             (bool success, ) = payable(seller).call{value: sellerProceeds}("");
             require(success, "JamClockAuction: transfer proceeds failed");
+            if (_supportIERC2981(nftAddress)) {
+                (address recipient, uint256 amount) = IERC2981(nftAddress)
+                    .royaltyInfo(tokenId, auctioneerCut);
+                require(
+                    amount < auctioneerCut,
+                    "JamClockAuction: royalty amount must be less than auctioneer cut"
+                );
+                _totalRoyaltyCut[address(0)] += amount;
+                _royaltyCuts[recipient][address(0)] += amount;
+            }
         }
         if (bidAmount > price) {
             uint256 bidExcess = bidAmount - price;

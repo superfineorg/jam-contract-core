@@ -2,17 +2,12 @@
 
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/interfaces/IERC165.sol";
-import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "../utils/HasNoEther.sol";
+import "./JamMarketplaceHelpers.sol";
 
-contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
+contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
     using SafeMath for uint256;
 
     // Represents an auction on an NFT
@@ -25,22 +20,8 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
         uint64 startedAt;
     }
 
-    uint256 withdrawDuration = 14 days;
-
-    // Cut owner takes on each auction, measured in basis points (1/100 of a percent).
-    // Values 0-10,000 map to 0%-100%
-    uint256 public ownerCut;
-
-    // The total amount of royalty cut which cannot be reclaimed by the owner of the contract
-    mapping(address => uint256) private _totalRoyaltyCut;
-
-    // Map from an NFT to its corresponding auction.
+    // Map from an NFT (NFT address + token ID) to its corresponding auction.
     mapping(address => mapping(uint256 => Auction)) public auctions;
-
-    // mapping royaltyCut amount for each (address, erc20Address) pair,
-    // erc20Address = address(0) mean it value is wei
-    mapping(address => mapping(address => uint256)) private royaltyCuts;
-    mapping(address => mapping(address => uint256)) private lastWithdraws;
 
     event AuctionCreated(
         address indexed nftAddress,
@@ -77,12 +58,10 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
         _;
     }
 
-    constructor(uint256 _ownerCut) {
-        require(
-            _ownerCut <= 10000,
-            "JamMarketplace: owner cut cannot exceed 100%"
-        );
-        ownerCut = _ownerCut;
+    constructor(address hubAddress, uint256 ownerCut_)
+        JamMarketplaceHelpers(hubAddress, ownerCut_)
+    {
+        marketplaceId = keccak256("JAM_MARKETPLACE");
     }
 
     function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
@@ -117,21 +96,6 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
     {
         IERC721 candidateContract = IERC721(_nftAddress);
         return candidateContract;
-    }
-
-    function _supportIERC2981(address _nftAddress)
-        internal
-        view
-        returns (bool)
-    {
-        bool success;
-        success = ERC165Checker.supportsERC165(_nftAddress);
-        if (success) {
-            success = IERC165(_nftAddress).supportsInterface(
-                type(IERC2981).interfaceId
-            );
-        }
-        return success;
     }
 
     function _getERC2981(address _nftAddress) internal pure returns (IERC2981) {
@@ -233,25 +197,18 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
         );
     }
 
-    function getWithdrawInfo(address[] memory _contractAddress)
+    /**
+     * @dev Check if this auction is currently cancelable
+     * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
+     * @param tokenId - ID of token to auction
+     */
+    function isAuctionCancelable(address nftAddress, uint256 tokenId)
         external
-        view
-        returns (
-            address[] memory contractAddress,
-            uint256[] memory balances,
-            uint256[] memory lastWithdraw
-        )
+        pure
+        override
+        returns (bool)
     {
-        uint256[] memory _balances = new uint256[](_contractAddress.length);
-        uint256[] memory _lastWithdraw = new uint256[](_contractAddress.length);
-        for (uint256 i = 0; i < _contractAddress.length; i += 1) {
-            address ad = _contractAddress[i];
-            uint256 balance = royaltyCuts[msg.sender][ad];
-            _balances[i] = balance;
-            uint256 lw = lastWithdraws[msg.sender][ad];
-            _lastWithdraw[i] = lw;
-        }
-        return (_contractAddress, balances, lastWithdraw);
+        return true;
     }
 
     /// @dev Create an auction.
@@ -286,7 +243,10 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
     /// @dev Cancels an auction.
     /// @param _nftAddress - Address of the NFT.
     /// @param _tokenId - ID of the NFT on auction to cancel.
-    function cancelAuction(address _nftAddress, uint256 _tokenId) external {
+    function cancelAuction(address _nftAddress, uint256 _tokenId)
+        external
+        override
+    {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
         require(_isOnAuction(_auction), "JamMarketplace: not on auction");
         require(
@@ -370,7 +330,7 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
             );
             _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address]
                 .add(amount);
-            royaltyCuts[firstOwner][_erc20Address] = royaltyCuts[firstOwner][
+            _royaltyCuts[firstOwner][_erc20Address] = _royaltyCuts[firstOwner][
                 _erc20Address
             ].add(amount);
         }
@@ -418,7 +378,7 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
                 _totalRoyaltyCut[address(0)] = _totalRoyaltyCut[address(0)].add(
                     amount
                 );
-                royaltyCuts[firstOwner][address(0)] = royaltyCuts[firstOwner][
+                _royaltyCuts[firstOwner][address(0)] = _royaltyCuts[firstOwner][
                     address(0)
                 ].add(amount);
             }
@@ -441,52 +401,5 @@ contract JamMarketplace is HasNoEther, Pausable, ReentrancyGuard {
         emit AuctionSuccessful(_nftAddress, _tokenId, _price, msg.sender);
 
         return _price;
-    }
-
-    function withdraw(address _erc20Address) public {
-        uint256 lastWithdraw = lastWithdraws[msg.sender][_erc20Address];
-        require(
-            lastWithdraw + withdrawDuration <= block.timestamp,
-            "JamMarketplace: only withdraw after 14 days before previous withdraw"
-        );
-        uint256 royaltyCut = royaltyCuts[msg.sender][_erc20Address];
-        require(royaltyCut > 0, "JamMarketplace: no royalty cut to withdraw");
-        royaltyCuts[msg.sender][_erc20Address] = 0;
-        _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address].sub(
-            royaltyCut
-        );
-        lastWithdraws[msg.sender][_erc20Address] = block.timestamp;
-        if (_erc20Address == address(0)) {
-            payable(msg.sender).transfer(royaltyCut);
-        } else {
-            IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-            bool success = erc20Contract.transfer(msg.sender, royaltyCut);
-            require(success, "JamMarketplace: transfer failed");
-        }
-    }
-
-    function reclaimEther() external override onlyOwner {
-        (bool success, ) = payable(owner()).call{
-            value: address(this).balance.sub(_totalRoyaltyCut[address(0)])
-        }("");
-        require(success, "JamMarketplace: reclaim Ether failed");
-    }
-
-    function reclaimERC20(address _erc20Address) external onlyOwner {
-        IERC20 erc20Contract = _getERC20Contract(_erc20Address);
-        erc20Contract.transfer(
-            owner(),
-            erc20Contract.balanceOf(address(this)).sub(
-                _totalRoyaltyCut[_erc20Address]
-            )
-        );
-    }
-
-    function pause() external onlyOwner {
-        _pause();
-    }
-
-    function unpause() external onlyOwner {
-        _unpause();
     }
 }
