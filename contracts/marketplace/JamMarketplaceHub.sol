@@ -8,11 +8,16 @@ contract JamMarketplaceHub is Ownable {
     mapping(bytes32 => address) private _marketplaceById;
     mapping(address => bytes32) private _marketplaceIds;
 
+    function isMarketplace(address addr) external view returns (bool) {
+        return _marketplaceIds[addr] != 0x0;
+    }
+
     function getMarketplace(bytes32 id) external view returns (address) {
         return _marketplaceById[id];
     }
 
     function registerMarketplace(bytes32 id, address addr) external onlyOwner {
+        require(id != 0x0, "JamMarketplaceHub: invalid marketplace id");
         _marketplaceById[id] = addr;
         _marketplaceIds[addr] = id;
     }

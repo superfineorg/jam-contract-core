@@ -170,10 +170,10 @@ contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
     function _cancelAuction(
         address _nftAddress,
         uint256 _tokenId,
-        address _seller
+        address _recipient
     ) internal {
         _removeAuction(_nftAddress, _tokenId);
-        _transfer(_nftAddress, _seller, _tokenId);
+        _transfer(_nftAddress, _recipient, _tokenId);
         emit AuctionCancelled(_nftAddress, _tokenId);
     }
 
@@ -195,20 +195,6 @@ contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
             _auction.erc20Address,
             _auction.startedAt
         );
-    }
-
-    /**
-     * @dev Check if this auction is currently cancelable
-     * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
-     * @param tokenId - ID of token to auction
-     */
-    function isAuctionCancelable(address nftAddress, uint256 tokenId)
-        external
-        pure
-        override
-        returns (bool)
-    {
-        return true;
     }
 
     /// @dev Create an auction.
@@ -243,17 +229,19 @@ contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
     /// @dev Cancels an auction.
     /// @param _nftAddress - Address of the NFT.
     /// @param _tokenId - ID of the NFT on auction to cancel.
-    function cancelAuction(address _nftAddress, uint256 _tokenId)
-        external
-        override
-    {
+    /// @param _recipient - The address where the NFT is returned to.
+    function cancelAuction(
+        address _nftAddress,
+        uint256 _tokenId,
+        address _recipient
+    ) external override {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
         require(_isOnAuction(_auction), "JamMarketplace: not on auction");
         require(
             msg.sender == _auction.seller,
             "JamMarketplace: only seller can cancel auction"
         );
-        _cancelAuction(_nftAddress, _tokenId, _auction.seller);
+        _cancelAuction(_nftAddress, _tokenId, _recipient);
     }
 
     /// @dev Cancels an auction when the contract is paused.

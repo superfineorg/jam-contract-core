@@ -217,8 +217,13 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
      * @notice This is a state-modifying function that can be called while the contract is paused.
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
+     * @param recipient - The address where the NFT is returned to.
      */
-    function cancelAuction(address nftAddress, uint256 tokenId)
+    function cancelAuction(
+        address nftAddress,
+        uint256 tokenId,
+        address recipient
+    )
         external
         override
         isOnAuction(nftAddress, tokenId)
@@ -229,7 +234,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
             auction.highestBidder == address(0),
             "JamTraditionalAuction: cannot cancel auction after first bid"
         );
-        _cancelAuction(nftAddress, tokenId, msg.sender);
+        _cancelAuction(nftAddress, tokenId, recipient);
     }
 
     /**
@@ -396,10 +401,10 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
     function _cancelAuction(
         address nftAddress,
         uint256 tokenId,
-        address seller
+        address recipient
     ) internal {
         delete _auctions[nftAddress][tokenId];
-        IERC721(nftAddress).transferFrom(address(this), seller, tokenId);
+        IERC721(nftAddress).transferFrom(address(this), recipient, tokenId);
         emit AuctionCancelled(nftAddress, tokenId);
     }
 }

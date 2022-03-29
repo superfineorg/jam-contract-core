@@ -114,20 +114,6 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     }
 
     /**
-     * @dev Check if this auction is currently cancelable
-     * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
-     * @param tokenId - ID of token to auction
-     */
-    function isAuctionCancelable(address nftAddress, uint256 tokenId)
-        external
-        pure
-        override
-        returns (bool)
-    {
-        return true;
-    }
-
-    /**
      * @dev Creates and begins a new auction.
      * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
      * @param tokenId - ID of token to auction, sender must be owner.
@@ -225,18 +211,20 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
      * @notice This is a state-modifying function that can be called while the contract is paused.
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
+     * @param recipient - The address where the NFT is returned to.
      */
-    function cancelAuction(address nftAddress, uint256 tokenId)
-        external
-        override
-    {
+    function cancelAuction(
+        address nftAddress,
+        uint256 tokenId,
+        address recipient
+    ) external override {
         Auction storage auction = auctions[nftAddress][tokenId];
         require(_isOnAuction(auction), "JamClockAuction: auction not exists");
         require(
             msg.sender == auction.seller,
             "JamClockAuction: only seller can cancel auction"
         );
-        _cancelAuction(nftAddress, tokenId, auction.seller);
+        _cancelAuction(nftAddress, tokenId, recipient);
     }
 
     /**
@@ -380,10 +368,10 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     function _cancelAuction(
         address nftAddress,
         uint256 tokenId,
-        address seller
+        address recipient
     ) internal {
         _removeAuction(nftAddress, tokenId);
-        _transfer(nftAddress, seller, tokenId);
+        _transfer(nftAddress, recipient, tokenId);
         emit AuctionCancelled(nftAddress, tokenId);
     }
 

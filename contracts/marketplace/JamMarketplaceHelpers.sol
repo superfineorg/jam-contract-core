@@ -20,7 +20,7 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable {
     uint256 private _withdrawDuration = 14 days;
 
     // The address of marketplace hub
-    address private _marketplaceHub;
+    address internal _marketplaceHub;
 
     // Mapping from (royalty recipient, erc20 currency) to the amount of royalty cut he receives
     mapping(address => mapping(address => uint256)) internal _royaltyCuts;
@@ -63,7 +63,10 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable {
     function isAuctionCancelable(address nftAddress, uint256 tokenId)
         external
         virtual
-        returns (bool);
+        returns (bool)
+    {
+        return true;
+    }
 
     function getReceivedRoyalty(address user, address[] memory currencies)
         external
@@ -94,9 +97,11 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable {
         require(success, "JamMarketplaceHelpers: register failed");
     }
 
-    function cancelAuction(address nftAddress, uint256 tokenId)
-        external
-        virtual;
+    function cancelAuction(
+        address nftAddress,
+        uint256 tokenId,
+        address recipient
+    ) external virtual {}
 
     function withdrawRoyalty(address currency) public {
         uint256 lastWithdraw = _lastWithdraws[msg.sender][currency];
