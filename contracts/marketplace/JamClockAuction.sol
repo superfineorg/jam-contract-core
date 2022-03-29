@@ -10,6 +10,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     // The information of an auction
     struct Auction {
         address seller;
+        address currency;
         uint128 startingPrice;
         uint128 endingPrice;
         uint64 duration;
@@ -22,6 +23,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     event AuctionCreated(
         address indexed nftAddress,
         uint256 indexed tokenId,
+        address currency,
         uint256 startingPrice,
         uint256 endingPrice,
         uint256 duration,
@@ -31,6 +33,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     event AuctionUpdated(
         address indexed nftAddress,
         uint256 indexed tokenId,
+        address currency,
         uint256 startingPrice,
         uint256 endingPrice,
         uint256 duration,
@@ -40,6 +43,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     event AuctionSuccessful(
         address indexed nftAddress,
         uint256 indexed tokenId,
+        address currency,
         uint256 totalPrice,
         address winner
     );
@@ -124,6 +128,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     function createAuction(
         address nftAddress,
         uint256 tokenId,
+        address currency,
         uint256 startingPrice,
         uint256 endingPrice,
         uint256 duration
@@ -142,6 +147,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         _escrow(nftAddress, seller, tokenId);
         Auction memory auction = Auction(
             seller,
+            currency,
             uint128(startingPrice),
             uint128(endingPrice),
             uint64(duration),
@@ -154,14 +160,20 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
      * @dev Bids on an open auction, completing the auction and transferring ownership of the NFT if enough Ether is supplied.
      * @param nftAddress - address of a deployed contract implementing the Nonfungible Interface.
      * @param tokenId - ID of token to bid on.
+     * @param bidAmount - The amount of money a bidder is willing to bid
      */
-    function bid(address nftAddress, uint256 tokenId)
-        external
-        payable
-        whenNotPaused
-        nonReentrant
-    {
-        _bid(nftAddress, tokenId, msg.value);
+    function bid(
+        address nftAddress,
+        uint256 tokenId,
+        uint256 bidAmount
+    ) external payable whenNotPaused nonReentrant {
+        Auction memory auction = auctions[nftAddress][tokenId];
+        if (auction.currency == address(0))
+            require(
+                bidAmount == msg.value,
+                "JamClockAuction: bid amount info mismatch"
+            );
+        _bid(nftAddress, tokenId, bidAmount);
         _transfer(nftAddress, msg.sender, tokenId);
     }
 
@@ -176,6 +188,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
     function updateAuction(
         address nftAddress,
         uint256 tokenId,
+        address currency,
         uint256 startingPrice,
         uint256 endingPrice,
         uint256 duration
@@ -198,6 +211,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         emit AuctionUpdated(
             nftAddress,
             tokenId,
+            currency,
             startingPrice,
             endingPrice,
             duration,
@@ -349,6 +363,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         emit AuctionCreated(
             nftAddress,
             tokenId,
+            auction.currency,
             uint256(auction.startingPrice),
             uint256(auction.endingPrice),
             uint256(auction.duration),
@@ -429,12 +444,23 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         uint256 price = _getCurrentPrice(auction);
         require(bidAmount >= price, "JamClockAuction: insufficient bid amount");
         address seller = auction.seller;
+        address currency = auction.currency;
         _removeAuction(nftAddress, tokenId);
         if (price > 0) {
             uint256 auctioneerCut = _computeCut(price);
             uint256 sellerProceeds = price - auctioneerCut;
-            (bool success, ) = payable(seller).call{value: sellerProceeds}("");
-            require(success, "JamClockAuction: transfer proceeds failed");
+            if (currency == address(0)) {
+                (bool success, ) = payable(seller).call{value: sellerProceeds}(
+                    ""
+                );
+                require(success, "JamClockAuction: transfer proceeds failed");
+            } else {
+                bool success = IERC20(currency).transfer(
+                    seller,
+                    sellerProceeds
+                );
+                require(success, "JamClockAuction: transfer proceeds failed");
+            }
             if (_supportIERC2981(nftAddress)) {
                 (address recipient, uint256 amount) = IERC2981(nftAddress)
                     .royaltyInfo(tokenId, auctioneerCut);
@@ -442,16 +468,29 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
                     amount < auctioneerCut,
                     "JamClockAuction: royalty amount must be less than auctioneer cut"
                 );
-                _totalRoyaltyCut[address(0)] += amount;
-                _royaltyCuts[recipient][address(0)] += amount;
+                _totalRoyaltyCut[currency] += amount;
+                _royaltyCuts[recipient][currency] += amount;
             }
         }
         if (bidAmount > price) {
             uint256 bidExcess = bidAmount - price;
-            (bool success, ) = payable(msg.sender).call{value: bidExcess}("");
-            require(success, "JamClockAuction: return excess failed");
+            if (currency == address(0)) {
+                (bool success, ) = payable(msg.sender).call{value: bidExcess}(
+                    ""
+                );
+                require(success, "JamClockAuction: return excess failed");
+            } else {
+                bool success = IERC20(currency).transfer(msg.sender, bidExcess);
+                require(success, "JamClockAuction: return excess failed");
+            }
         }
-        emit AuctionSuccessful(nftAddress, tokenId, price, msg.sender);
+        emit AuctionSuccessful(
+            nftAddress,
+            tokenId,
+            currency,
+            price,
+            msg.sender
+        );
         return price;
     }
 }
