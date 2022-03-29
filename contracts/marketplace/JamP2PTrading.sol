@@ -104,6 +104,10 @@ contract JamP2PTrading is JamMarketplaceHelpers, ReentrancyGuard {
                 amount == msg.value,
                 "JamP2PTrading: offer amount info mismatch"
             );
+        else {
+            (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+            require(success, "JamP2PTrading: return money failed");
+        }
 
         // Save the offer's information
         Offer memory offer = Offer(

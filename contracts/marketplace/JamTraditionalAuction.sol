@@ -277,6 +277,10 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
                 bidAmount == msg.value,
                 "JamTraditionalAuction: bid amount info mismatch"
             );
+        else {
+            (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+            require(success, "JamTraditionalAuction: return money failed");
+        }
         require(
             bidAmount > auction.highestBidAmount,
             "JamTraditionalAuction: currently has higher bid"

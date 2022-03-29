@@ -173,6 +173,10 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
                 bidAmount == msg.value,
                 "JamClockAuction: bid amount info mismatch"
             );
+        else {
+            (bool success, ) = payable(msg.sender).call{value: msg.value}("");
+            require(success, "JamClockAuction: return money failed");
+        }
         _bid(nftAddress, tokenId, bidAmount);
         _transfer(nftAddress, msg.sender, tokenId);
     }
