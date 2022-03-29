@@ -269,18 +269,32 @@ contract JamP2PTrading is JamMarketplaceHelpers, ReentrancyGuard {
         owner_ = IERC721(nftAddress).ownerOf(tokenId);
         IERC721(nftAddress).transferFrom(owner_, offeror, tokenId);
 
-        // Get the offer money
-        if (offer.currency == address(0)) {
-            (bool success, ) = payable(msg.sender).call{value: offer.amount}(
-                ""
-            );
-            require(success, "JamP2PTrading: fail to get the money");
-        } else {
-            bool success = IERC20(offer.currency).transfer(
-                msg.sender,
-                offer.amount
-            );
-            require(success, "JamP2PTrading: fail to get the money");
+        // Compute auctioneer cut and royalty cut then return proceeds to seller
+        if (offer.amount > 0) {
+            uint256 auctioneerCut = (offer.amount * ownerCut) / 10000;
+            uint256 sellerProceeds = offer.amount - auctioneerCut;
+            if (_supportIERC2981(nftAddress)) {
+                (address recipient, uint256 amount) = IERC2981(nftAddress)
+                    .royaltyInfo(tokenId, auctioneerCut);
+                require(
+                    amount < auctioneerCut,
+                    "JamTraditionalAuction: royalty amount must be less than auctioneer cut"
+                );
+                _totalRoyaltyCut[offer.currency] += amount;
+                _royaltyCuts[recipient][offer.currency] += amount;
+            }
+            if (offer.currency == address(0)) {
+                (bool success, ) = payable(msg.sender).call{
+                    value: sellerProceeds
+                }("");
+                require(success, "JamP2PTrading: transfer proceeds failed");
+            } else {
+                bool success = IERC20(offer.currency).transfer(
+                    msg.sender,
+                    sellerProceeds
+                );
+                require(success, "JamP2PTrading: transfer proceeds failed");
+            }
         }
 
         emit OfferAccepted(
