@@ -2,10 +2,11 @@ require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
 const { expect } = require("chai");
+const { soliditySha3 } = require('web3-utils');
 const JAM_NFT_STAKING = "JamNFTStaking";
 const SIMPLE_ERC_20 = "SimpleERC20";
-const SIMPLE_ERC_721 = "SimpleERC721";
-const SIMPLE_ERC_1155 = "SimpleERC1155";
+const ERC_721 = "SimpleERC721";
+const ERC_1155 = "JamNFT1155";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 before("Deploy JamNFTStaking contract and simple NFT contracts", async () => {
@@ -33,7 +34,7 @@ before("Deploy JamNFTStaking contract and simple NFT contracts", async () => {
   await this.erc20Contract.deployed();
 
   // Deploy a simple NFT 721 contract
-  this.nft721Factory = await hre.ethers.getContractFactory(SIMPLE_ERC_721);
+  this.nft721Factory = await hre.ethers.getContractFactory(ERC_721);
   this.nft721Contract = await this.nft721Factory.deploy(
     deployer.address,
     "Gamejam Awesome NFT",
@@ -43,8 +44,8 @@ before("Deploy JamNFTStaking contract and simple NFT contracts", async () => {
   await this.nft721Contract.deployed();
 
   // Deploy a simple NFT 1155 contract
-  this.nft1155Factory = await hre.ethers.getContractFactory(SIMPLE_ERC_1155);
-  this.nft1155Contract = await this.nft1155Factory.deploy();
+  this.nft1155Factory = await hre.ethers.getContractFactory(ERC_1155);
+  this.nft1155Contract = await this.nft1155Factory.deploy("https://gamejam.com/nft/");
   await this.nft1155Contract.deployed();
 });
 
@@ -63,6 +64,16 @@ describe("Test NFT staking program", () => {
       .connect(this.deployer)
       .attach(this.nftStakingContract.address)
       .setOperators([this.operator.address], [true]);
+  });
+
+  it("Setup minter role", async () => {
+    let minterRole = await this.nft1155Contract.MINTER_ROLE();
+    await this.nft1155Factory
+      .connect(this.deployer)
+      .attach(this.nft1155Contract.address)
+      .grantRole(minterRole, this.deployer.address);
+    let checkRole = await this.nft1155Contract.hasRole(minterRole, this.deployer.address);
+    expect(checkRole).to.equal(true);
   });
 
   it("Transfer some initial fund to the contract", async () => {
@@ -98,23 +109,7 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
-      .whitelistNFT(
-        [
-          this.nft721Contract.address,
-          this.nft1155Contract.address,
-          this.nft1155Contract.address,
-          this.nft1155Contract.address
-        ],
-        [0, 1, 1, 1],
-        [0, 1, 3, 4]
-      );
-  });
-
-  it("Whitelist more NFT1155 token ids", async () => {
-    await this.nftStakingFactory
-      .connect(this.operator)
-      .attach(this.nftStakingContract.address)
-      .whitelistNFT([this.nft1155Contract.address], [1], [6]);
+      .whitelistNFT([this.nft721Contract.address, this.nft1155Contract.address], [0, 1]);
   });
 
   it("Mint some ERC721 and ERC1155 NFTs to a participant", async () => {
@@ -129,13 +124,13 @@ describe("Test NFT staking program", () => {
     await this.nft1155Factory
       .connect(this.deployer)
       .attach(this.nft1155Contract.address)
-      .mintTo(this.participant.address, 20);  // id = 1
+      .mint(this.participant.address, 1, 20, soliditySha3("#1"));
     await this.nft1155Factory
       .connect(this.deployer)
       .attach(this.nft1155Contract.address)
-      .mintTo(this.participant.address, 30);  // id = 2
+      .mint(this.participant.address, 2, 30, soliditySha3("#2"));
     let unstakedNFTs = await this.nftStakingContract.getUnstakedNFTs(this.participant.address);
-    expect(unstakedNFTs.length).to.equal(3);
+    expect(unstakedNFTs.length).to.equal(4);
     expect(unstakedNFTs[0].nftType).to.equal(0);
     expect(unstakedNFTs[0].nftAddress).to.equal(this.nft721Contract.address);
     expect(unstakedNFTs[0].tokenId.toString()).to.equal("1");
@@ -151,6 +146,11 @@ describe("Test NFT staking program", () => {
     expect(unstakedNFTs[2].tokenId.toString()).to.equal("1");
     expect(unstakedNFTs[2].quantity.toString()).to.equal("20");
     expect(unstakedNFTs[2].stakingMoment.toString()).to.equal("0");
+    expect(unstakedNFTs[3].nftType).to.equal(1);
+    expect(unstakedNFTs[3].nftAddress).to.equal(this.nft1155Contract.address);
+    expect(unstakedNFTs[3].tokenId.toString()).to.equal("2");
+    expect(unstakedNFTs[3].quantity.toString()).to.equal("30");
+    expect(unstakedNFTs[3].stakingMoment.toString()).to.equal("0");
   });
 
   it("Stake a new ERC721 NFT", async () => {
@@ -204,15 +204,6 @@ describe("Test NFT staking program", () => {
     expect(stakedNFTs[1].tokenId.toString()).to.equal("1");
     expect(stakedNFTs[1].quantity.toString()).to.equal("15");
     expect(stakedNFTs[1].stakingMoment.toString()).not.to.equal("0");
-  });
-
-  it("Stake some non-supported ERC1155 NFTs", async () => {
-    await expect(
-      this.nftStakingFactory
-        .connect(this.participant)
-        .attach(this.nftStakingContract.address)
-        .stake([this.nft1155Contract.address], [2], [25])
-    ).to.be.revertedWith("JamNFTStaking: this NFT is not supported");
   });
 
   it("Unstake the staked ERC721 NFT above", async () => {

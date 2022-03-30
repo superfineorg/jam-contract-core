@@ -34,11 +34,19 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
             );
     }
 
+    function getAllOwnedTokens(address user)
+        external
+        view
+        returns (TokenInfo[] memory)
+    {
+        return getOwnedTokens(user, 0, _mintedTokenIds.length - 1);
+    }
+
     function getOwnedTokens(
         address user,
         uint256 fromIndex,
         uint256 toIndex
-    ) external view returns (TokenInfo[] memory) {
+    ) public view returns (TokenInfo[] memory) {
         uint256 lastIndex = toIndex;
         if (lastIndex >= _mintedTokenIds.length)
             lastIndex = _mintedTokenIds.length - 1;
