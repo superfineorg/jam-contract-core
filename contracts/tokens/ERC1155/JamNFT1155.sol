@@ -39,6 +39,7 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
         view
         returns (TokenInfo[] memory)
     {
+        if (_mintedTokenIds.length == 0) return new TokenInfo[](0);
         return getOwnedTokens(user, 0, _mintedTokenIds.length - 1);
     }
 
@@ -47,6 +48,10 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
         uint256 fromIndex,
         uint256 toIndex
     ) public view returns (TokenInfo[] memory) {
+        // Default case
+        if (_mintedTokenIds.length == 0) return new TokenInfo[](0);
+
+        // Init query range
         uint256 lastIndex = toIndex;
         if (lastIndex >= _mintedTokenIds.length)
             lastIndex = _mintedTokenIds.length - 1;

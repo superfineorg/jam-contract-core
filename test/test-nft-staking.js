@@ -110,6 +110,8 @@ describe("Test NFT staking program", () => {
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT([this.nft721Contract.address, this.nft1155Contract.address], [0, 1]);
+    let unstakedNFTs = await this.nftStakingContract.getUnstakedNFTs(this.participant.address);
+    expect(unstakedNFTs.length).to.equal(0);
   });
 
   it("Mint some ERC721 and ERC1155 NFTs to a participant", async () => {

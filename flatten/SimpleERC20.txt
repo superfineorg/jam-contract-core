@@ -1,7 +1,8 @@
-// Sources flattened with hardhat v2.8.4 https://hardhat.org
+// Sources flattened with hardhat v2.9.1 https://hardhat.org
 
 // File @openzeppelin/contracts/token/ERC20/IERC20.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/IERC20.sol)
 
 pragma solidity ^0.8.0;
@@ -87,6 +88,7 @@ interface IERC20 {
 
 // File @openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (token/ERC20/extensions/IERC20Metadata.sol)
 
 pragma solidity ^0.8.0;
@@ -116,6 +118,7 @@ interface IERC20Metadata is IERC20 {
 
 // File @openzeppelin/contracts/utils/Context.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/Context.sol)
 
 pragma solidity ^0.8.0;
@@ -143,6 +146,7 @@ abstract contract Context {
 
 // File @openzeppelin/contracts/token/ERC20/ERC20.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/ERC20.sol)
 
 pragma solidity ^0.8.0;
@@ -527,6 +531,7 @@ contract ERC20 is Context, IERC20, IERC20Metadata {
 
 // File @openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts (last updated v4.5.0) (token/ERC20/extensions/ERC20Burnable.sol)
 
 pragma solidity ^0.8.0;
@@ -567,6 +572,7 @@ abstract contract ERC20Burnable is Context, ERC20 {
 
 // File @openzeppelin/contracts/utils/math/SafeMath.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (utils/math/SafeMath.sol)
 
 pragma solidity ^0.8.0;
@@ -797,6 +803,7 @@ library SafeMath {
 
 // File @openzeppelin/contracts/access/Ownable.sol@v4.5.0
 
+// SPDX-License-Identifier: MIT
 // OpenZeppelin Contracts v4.4.1 (access/Ownable.sol)
 
 pragma solidity ^0.8.0;
@@ -872,7 +879,7 @@ abstract contract Ownable is Context {
 }
 
 
-// File contracts/tokens/SimpleERC20.sol
+// File contracts/tokens/ERC20/SimpleERC20.sol
 
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
