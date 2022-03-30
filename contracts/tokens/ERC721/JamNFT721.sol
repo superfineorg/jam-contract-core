@@ -128,6 +128,7 @@ contract JamNFT721 is
         uint256 fromIndex,
         uint256 toIndex
     ) external view returns (TokenInfo[] memory) {
+        if (balanceOf(user) == 0) return new TokenInfo[](0);
         uint256 lastIndex = toIndex;
         if (lastIndex >= balanceOf(user)) lastIndex = balanceOf(user) - 1;
         require(fromIndex <= lastIndex, "JamNFT721: invalid query range");

@@ -74,6 +74,10 @@ contract JamNFT1155OpenSea is
         uint256 fromIndex,
         uint256 toIndex
     ) external view returns (TokenInfo[] memory) {
+        // Default case
+        if (_mintedTokenIds.length == 0) return new TokenInfo[](0);
+
+        // Init query range
         uint256 lastIndex = toIndex;
         if (lastIndex >= _mintedTokenIds.length)
             lastIndex = _mintedTokenIds.length - 1;
