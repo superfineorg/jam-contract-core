@@ -93,6 +93,12 @@ describe("Test OGPass and Super Happy Frens", () => {
     expect(currentOwner).to.equal(this.user.address);
   });
 
+  it("Check used OGPass ids", async () => {
+    let usedIds = await this.mintingContract.getUsedOGPass(this.user.address);
+    expect(usedIds.length).to.equal(1);
+    expect(usedIds[0].toString()).to.equal("0");
+  });
+
   it("User buys another SuperHappyFrens NFT with normal price", async () => {
     await expect(
       this.mintingFactory

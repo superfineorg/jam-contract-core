@@ -13,6 +13,7 @@ contract JamOGPassMinting is Ownable {
     uint256 public jamSuperHappyFrensPrice;
     uint256 public jamSuperHappyFrensDiscountPrice;
     mapping(uint256 => bool) private _isOGPassUsed;
+    mapping(address => uint256[]) private _usedOGPassIds;
 
     constructor(
         address jamOGPass,
@@ -30,6 +31,14 @@ contract JamOGPassMinting is Ownable {
         mintingFee = mintingFee_;
         jamSuperHappyFrensPrice = jamSuperHappyFrensPrice_;
         jamSuperHappyFrensDiscountPrice = jamSuperHappyFrensDiscountPrice_;
+    }
+
+    function getUsedOGPass(address user)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return _usedOGPassIds[user];
     }
 
     function mintOGPass() external payable {
@@ -54,6 +63,7 @@ contract JamOGPassMinting is Ownable {
                 );
                 price = jamSuperHappyFrensDiscountPrice;
                 _isOGPassUsed[ogPassId] = true;
+                _usedOGPassIds[msg.sender].push(ogPassId);
             }
         } catch {}
         require(msg.value >= price, "JamOGPassMinting: not enough money");
