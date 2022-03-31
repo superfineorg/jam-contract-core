@@ -59,8 +59,8 @@ before("Deploy all contracts", async () => {
 
   // Deploy JamTraditionalAuction
   this.jamTraditionalAuctionFactory = await hre.ethers.getContractFactory(JAM_TRADITIONAL_AUCTION);
-  this.jamTraditonalAuctionContract = await this.jamClockAuctionFactory.deploy(this.hubContract.address, 2000);
-  await this.jamTraditonalAuctionContract.deployed();
+  this.jamTraditionalAuctionContract = await this.jamTraditionalAuctionFactory.deploy(this.hubContract.address, 2000);
+  await this.jamTraditionalAuctionContract.deployed();
 
   // Deploy JamP2PTrading
   this.jamP2PTradingFactory = await hre.ethers.getContractFactory(JAM_P2P_TRADING);
@@ -96,13 +96,13 @@ describe("Set all marketplace contracts up", () => {
   it("Set JamTraditionalMarketplace up", async () => {
     await this.jamTraditionalAuctionFactory
       .connect(this.deployer)
-      .attach(this.jamTraditonalAuctionContract.address)
+      .attach(this.jamTraditionalAuctionContract.address)
       .registerWithHub();
-    let checkAddress = await this.hubContract.isMarketplace(this.jamTraditonalAuctionContract.address);
-    let id = await this.jamTraditonalAuctionContract.marketplaceId();
+    let checkAddress = await this.hubContract.isMarketplace(this.jamTraditionalAuctionContract.address);
+    let id = await this.jamTraditionalAuctionContract.marketplaceId();
     let addr = await this.hubContract.getMarketplace(id);
     expect(checkAddress).to.equal(true);
-    expect(addr).to.equal(this.jamTraditonalAuctionContract.address);
+    expect(addr).to.equal(this.jamTraditionalAuctionContract.address);
   });
 
   it("Set JamP2PTrading up", async () => {
@@ -299,7 +299,140 @@ describe("Test JamClockAuction", () => {
 });
 
 describe("Test JamTraditionalAuction", () => {
-  //
+  it("Create new auction with native token as payment", async () => {
+    let auctionEndsAt = Math.floor(Date.now() / 1000 + 3000);
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamTraditionalAuctionContract.address, 4);
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .createAuction(
+        this.erc721Contract.address,
+        4,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("30"),
+        auctionEndsAt
+      );
+    let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
+    expect(auction.seller).to.equal(this.seller.address);
+    expect(auction.currency).to.equal(ZERO_ADDRESS);
+    expect(auction.highestBidder).to.equal(ZERO_ADDRESS);
+    expect(auction.highestBidAmount.toString()).to.equal(hre.ethers.utils.parseEther("30"));
+    expect(auction.endAt.toString()).to.equal(auctionEndsAt.toString());
+  });
+
+  it("Cancel this auction", async () => {
+    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .cancelAuction(this.erc721Contract.address, 4, this.seller.address);
+    let currentOwner = await this.erc721Contract.ownerOf(4);
+    expect(isAuctionCancelable).to.equal(true);
+    expect(currentOwner).to.equal(this.seller.address);
+  });
+
+  it("Create this auction again an update its information", async () => {
+    let auctionEndsAt = Math.floor(Date.now() / 1000 + 3000);
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamTraditionalAuctionContract.address, 4);
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .createAuction(
+        this.erc721Contract.address,
+        4,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("30"),
+        auctionEndsAt
+      );
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .updateAuction(
+        this.erc721Contract.address,
+        4,
+        this.erc20Contract.address,
+        hre.ethers.utils.parseEther("10"),
+        auctionEndsAt - 2300
+      );
+    let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
+    expect(auction.seller).to.equal(this.seller.address);
+    expect(auction.currency).to.equal(this.erc20Contract.address);
+    expect(auction.highestBidder).to.equal(ZERO_ADDRESS);
+    expect(auction.highestBidAmount.toString()).to.equal(hre.ethers.utils.parseEther("10"));
+    expect(auction.endAt.toString()).to.equal((auctionEndsAt - 2300).toString());
+  });
+
+  it("The first buyer bids 25", async () => {
+    await this.erc20Factory
+      .connect(this.buyer1)
+      .attach(this.erc20Contract.address)
+      .approve(
+        this.jamTraditionalAuctionContract.address,
+        hre.ethers.utils.parseEther("25")
+      );
+    await this.jamTraditionalAuctionFactory
+      .connect(this.buyer1)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("25"));
+    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
+    expect(isAuctionCancelable).to.equal(false);
+    expect(auction.seller).to.equal(this.seller.address);
+    expect(auction.currency).to.equal(this.erc20Contract.address);
+    expect(auction.highestBidder).to.equal(this.buyer1.address);
+    expect(auction.highestBidAmount).to.equal(hre.ethers.utils.parseEther("25"));
+    expect(auction.endAt).not.to.equal("0");
+  });
+
+  it("The second buyer bids 30", async () => {
+    await this.erc20Factory
+      .connect(this.buyer2)
+      .attach(this.erc20Contract.address)
+      .approve(
+        this.jamTraditionalAuctionContract.address,
+        hre.ethers.utils.parseEther("30")
+      );
+    await expect(
+      this.jamTraditionalAuctionFactory
+        .connect(this.buyer2)
+        .attach(this.jamTraditionalAuctionContract.address)
+        .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("25"))
+    ).to.be.revertedWith("JamTraditionalAuction: currently has higher bid");
+    await this.jamTraditionalAuctionFactory
+      .connect(this.buyer2)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("30"));
+    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
+    expect(isAuctionCancelable).to.equal(false);
+    expect(auction.seller).to.equal(this.seller.address);
+    expect(auction.currency).to.equal(this.erc20Contract.address);
+    expect(auction.highestBidder).to.equal(this.buyer2.address);
+    expect(auction.highestBidAmount).to.equal(hre.ethers.utils.parseEther("30"));
+    expect(auction.endAt).not.to.equal("0");
+  });
+
+  // it("The winner claims the asset", async () => {
+  //   await expect(
+  //     this.jamTraditionalAuctionFactory
+  //       .connect(this.buyer2)
+  //       .attach(this.jamTraditionalAuctionContract.address)
+  //       .claimAsset(this.erc721Contract.address, 4)
+  //   ).to.be.revertedWith("JamTraditionalAuction: auction not ends yet");
+  //   await sleep(20000);
+  //   await this.jamTraditionalAuctionFactory
+  //     .connect(this.buyer2)
+  //     .attach(this.jamTraditionalAuctionContract.address)
+  //     .claimAsset(this.erc721Contract.address, 4);
+  //   let currentOwner = await this.erc721Contract.ownerOf(4);
+  //   expect(currentOwner).to.equal(this.buyer2.address);
+  // });
 });
 
 describe("Test JamP2PTrading", () => {

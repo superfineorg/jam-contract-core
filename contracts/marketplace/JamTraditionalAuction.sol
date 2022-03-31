@@ -195,6 +195,10 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
     {
         Auction storage auction = _auctions[nftAddress][tokenId];
         require(
+            endAt - block.timestamp >= 10 minutes,
+            "JamTraditionalAuction: too short auction"
+        );
+        require(
             auction.highestBidder == address(0),
             "JamTraditionalAuction: cannot update auction after first bid"
         );
@@ -272,6 +276,10 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         isOnAuction(nftAddress, tokenId)
     {
         Auction storage auction = _auctions[nftAddress][tokenId];
+        require(
+            block.timestamp < auction.endAt,
+            "JamTraditionalAuction: auction already ended"
+        );
         if (auction.currency == address(0))
             require(
                 bidAmount == msg.value,
@@ -287,25 +295,26 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         );
 
         // Return money to previous bidder
-        if (auction.currency == address(0)) {
-            (bool success, ) = payable(auction.highestBidder).call{
-                value: auction.highestBidAmount
-            }("");
-            require(
-                success,
-                "JamTraditionalAuction: return money to previous bidder failed"
-            );
-        } else {
-            IERC20 currencyContract = IERC20(auction.currency);
-            bool success = currencyContract.transfer(
-                auction.highestBidder,
-                auction.highestBidAmount
-            );
-            require(
-                success,
-                "JamTraditionalAuction: return money to previous bidder failed"
-            );
-        }
+        if (auction.highestBidder != address(0))
+            if (auction.currency == address(0)) {
+                (bool success, ) = payable(auction.highestBidder).call{
+                    value: auction.highestBidAmount
+                }("");
+                require(
+                    success,
+                    "JamTraditionalAuction: return money to previous bidder failed"
+                );
+            } else {
+                IERC20 currencyContract = IERC20(auction.currency);
+                bool success = currencyContract.transfer(
+                    auction.highestBidder,
+                    auction.highestBidAmount
+                );
+                require(
+                    success,
+                    "JamTraditionalAuction: return money to previous bidder failed"
+                );
+            }
 
         // Update auction info
         auction.highestBidder = msg.sender;
@@ -338,7 +347,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         whenNotPaused
         isOnAuction(nftAddress, tokenId)
     {
-        Auction storage auction = _auctions[nftAddress][tokenId];
+        Auction memory auction = _auctions[nftAddress][tokenId];
         require(
             block.timestamp >= auction.endAt,
             "JamTraditionalAuction: auction not ends yet"
