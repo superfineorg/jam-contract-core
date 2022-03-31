@@ -3289,7 +3289,7 @@ contract JamOGPassMinting is Ownable {
                 _isOGPassUsed[ogPassId] = true;
             }
         } catch {}
-        require(msg.value > price, "JamOGPassMinting: not enough money");
+        require(msg.value >= price, "JamOGPassMinting: not enough money");
         jamSuperHappyFrensContract.mintTo(msg.sender);
         (bool success, ) = payable(msg.sender).call{value: msg.value - price}(
             ""
