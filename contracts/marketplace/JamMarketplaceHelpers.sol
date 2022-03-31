@@ -87,14 +87,7 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable {
     }
 
     function registerWithHub() external onlyOwner {
-        (bool success, ) = _marketplaceHub.delegatecall(
-            abi.encodeWithSelector(
-                JamMarketplaceHub.registerMarketplace.selector,
-                marketplaceId,
-                address(this)
-            )
-        );
-        require(success, "JamMarketplaceHelpers: register failed");
+        JamMarketplaceHub(_marketplaceHub).registerMarketplace(marketplaceId);
     }
 
     function cancelAuction(

@@ -85,6 +85,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         view
         returns (
             address seller,
+            address currency,
             uint256 startingPrice,
             uint256 endingPrice,
             uint256 duration,
@@ -95,6 +96,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         require(_isOnAuction(auction), "JamClockAuction: auction not exists");
         return (
             auction.seller,
+            auction.currency,
             auction.startingPrice,
             auction.endingPrice,
             auction.duration,
@@ -209,6 +211,7 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
             msg.sender == auction.seller,
             "JamClockAuction: only seller can update auction"
         );
+        auction.currency = currency;
         auction.startingPrice = uint128(startingPrice);
         auction.endingPrice = uint128(endingPrice);
         auction.duration = uint64(duration);
@@ -450,6 +453,8 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
         address seller = auction.seller;
         address currency = auction.currency;
         _removeAuction(nftAddress, tokenId);
+        if (currency != address(0))
+            IERC20(currency).transferFrom(msg.sender, address(this), bidAmount);
         if (price > 0) {
             uint256 auctioneerCut = _computeCut(price);
             uint256 sellerProceeds = price - auctioneerCut;
