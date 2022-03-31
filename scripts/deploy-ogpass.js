@@ -26,7 +26,7 @@ async function deploy() {
   await ogPassContract.deployed();
   console.log(`${OG_PASS} has been deployed at: ${ogPassContract.address}`);
 
-  // Deploy SuperHapprFrens
+  // Deploy SuperHappyFrens
   console.log(`Deploying ${SHF} with parameters: "Super Happy Frens NFT" "SHF" "https://gamejam.com/super-happy-frens/" "0x0000000000000000000000000000000000000034" "2000"`);
   let shfFactory = await hre.ethers.getContractFactory(SHF);
   let shfContract = await shfFactory.deploy(
@@ -51,6 +51,20 @@ async function deploy() {
   );
   await mintingContract.deployed();
   console.log(`${MINTING} has been deployed at ${mintingContract.address}`);
+
+  // Set OGPass and SupperHappyFrens minter role
+  let minterRole = await ogPassContract.MINTER_ROLE();
+  console.log(`Setting ${OG_PASS} minter role for ${MINTING}...`);
+  await ogPassFactory
+    .connect(deployer)
+    .attach(ogPassContract.address)
+    .grantRole(minterRole, mintingContract.address);
+
+  console.log(`Setting ${SHF} minter role for ${MINTING}...`);
+  await shfFactory
+    .connect(deployer)
+    .attach(shfContract.address)
+    .grantRole(minterRole, mintingContract.address);
 
   // Write the result to deploy.json
   deployInfo[networkName][OG_PASS] = ogPassContract.address;

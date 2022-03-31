@@ -79,14 +79,16 @@ describe("Test OGPass and Super Happy Frens", () => {
   });
 
   it("User buys a SuperHappyFrens NFT with discount price", async () => {
-    await this.ogPassFactory
-      .connect(this.user)
-      .attach(this.ogPassContract.address)
-      .approve(this.mintingContract.address, 0);
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
       .buySuperHappyFrens(0, { value: 3000 });
+    await expect(
+      this.mintingFactory
+        .connect(this.user)
+        .attach(this.mintingContract.address)
+        .buySuperHappyFrens(0, { value: 3000 })
+    ).to.be.revertedWith("JamOGPassMinting: ogPass already used");
     let currentOwner = await this.shfContract.ownerOf(0);
     expect(currentOwner).to.equal(this.user.address);
   });
@@ -113,10 +115,10 @@ describe("Test OGPass and Super Happy Frens", () => {
         .attach(this.mintingContract.address)
         .mintOGPass({ value: 2222 });
     let ownedTokens = await this.ogPassContract.getOwnedTokens(this.user.address);
-    expect(ownedTokens.length).to.equal(8);
-    for (let i = 0; i < 8; i++) {
-      expect(ownedTokens[i].tokenId.toString()).to.equal((i + 1).toString());
-      expect(ownedTokens[i].tokenURI).to.equal(`https://gamejam.com/og-pass/${i + 1}.json`);
+    expect(ownedTokens.length).to.equal(9);
+    for (let i = 0; i < 9; i++) {
+      expect(ownedTokens[i].tokenId.toString()).to.equal(i.toString());
+      expect(ownedTokens[i].tokenURI).to.equal(`https://gamejam.com/og-pass/${i}.json`);
     }
   });
 

@@ -3245,6 +3245,7 @@ contract JamOGPassMinting is Ownable {
     uint256 public mintingFee;
     uint256 public jamSuperHappyFrensPrice;
     uint256 public jamSuperHappyFrensDiscountPrice;
+    mapping(uint256 => bool) private _isOGPassUsed;
 
     constructor(
         address jamOGPass,
@@ -3280,8 +3281,12 @@ contract JamOGPassMinting is Ownable {
         uint256 price = jamSuperHappyFrensPrice;
         try jamOGPassContract.ownerOf(ogPassId) returns (address owner) {
             if (owner == msg.sender) {
+                require(
+                    !_isOGPassUsed[ogPassId],
+                    "JamOGPassMinting: ogPass already used"
+                );
                 price = jamSuperHappyFrensDiscountPrice;
-                jamOGPassContract.burn(ogPassId);
+                _isOGPassUsed[ogPassId] = true;
             }
         } catch {}
         require(msg.value > price, "JamOGPassMinting: not enough money");
