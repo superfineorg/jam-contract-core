@@ -256,17 +256,8 @@ contract JamP2PTrading is JamMarketplaceHelpers, ReentrancyGuard {
         // Cancel the auction if the NFT is on marketplace
         if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_)) {
             JamMarketplaceHelpers marketplace = JamMarketplaceHelpers(owner_);
-            if (marketplace.isAuctionCancelable(nftAddress, tokenId)) {
-                (bool success, ) = _marketplaceHub.delegatecall(
-                    abi.encodeWithSelector(
-                        JamMarketplaceHelpers.cancelAuction.selector,
-                        nftAddress,
-                        tokenId,
-                        address(this)
-                    )
-                );
-                require(success, "JamP2PTrading: cancel auction failed");
-            }
+            if (marketplace.isAuctionCancelable(nftAddress, tokenId))
+                marketplace.cancelAuction(nftAddress, tokenId);
         }
 
         // Sell it to the offeror

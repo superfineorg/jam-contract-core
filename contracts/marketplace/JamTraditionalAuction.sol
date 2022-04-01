@@ -67,13 +67,13 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         _;
     }
 
-    modifier onlySeller(
-        address user,
-        address nftAddress,
-        uint256 tokenId
-    ) {
+    modifier onlySeller(address nftAddress, uint256 tokenId) {
         require(
-            user == _auctions[nftAddress][tokenId].seller,
+            msg.sender == _auctions[nftAddress][tokenId].seller ||
+                msg.sender ==
+                JamMarketplaceHub(_marketplaceHub).getMarketplace(
+                    keccak256("JAM_P2P_TRADING")
+                ),
             "JamTraditionalAuction: sender is not seller"
         );
         _;
@@ -191,7 +191,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         external
         whenNotPaused
         isOnAuction(nftAddress, tokenId)
-        onlySeller(msg.sender, nftAddress, tokenId)
+        onlySeller(nftAddress, tokenId)
     {
         Auction storage auction = _auctions[nftAddress][tokenId];
         require(
@@ -221,24 +221,19 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
      * @notice This is a state-modifying function that can be called while the contract is paused.
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
-     * @param recipient - The address where the NFT is returned to.
      */
-    function cancelAuction(
-        address nftAddress,
-        uint256 tokenId,
-        address recipient
-    )
+    function cancelAuction(address nftAddress, uint256 tokenId)
         external
         override
         isOnAuction(nftAddress, tokenId)
-        onlySeller(msg.sender, nftAddress, tokenId)
+        onlySeller(nftAddress, tokenId)
     {
         Auction memory auction = _auctions[nftAddress][tokenId];
         require(
             auction.highestBidder == address(0),
             "JamTraditionalAuction: cannot cancel auction after first bid"
         );
-        _cancelAuction(nftAddress, tokenId, recipient);
+        _cancelAuction(nftAddress, tokenId, msg.sender);
     }
 
     /**

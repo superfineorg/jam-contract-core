@@ -229,19 +229,21 @@ contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
     /// @dev Cancels an auction.
     /// @param _nftAddress - Address of the NFT.
     /// @param _tokenId - ID of the NFT on auction to cancel.
-    /// @param _recipient - The address where the NFT is returned to.
-    function cancelAuction(
-        address _nftAddress,
-        uint256 _tokenId,
-        address _recipient
-    ) external override {
+    function cancelAuction(address _nftAddress, uint256 _tokenId)
+        external
+        override
+    {
         Auction storage _auction = auctions[_nftAddress][_tokenId];
         require(_isOnAuction(_auction), "JamMarketplace: not on auction");
         require(
-            msg.sender == _auction.seller,
+            msg.sender == _auction.seller ||
+                msg.sender ==
+                JamMarketplaceHub(_marketplaceHub).getMarketplace(
+                    keccak256("JAM_P2P_TRADING")
+                ),
             "JamMarketplace: only seller can cancel auction"
         );
-        _cancelAuction(_nftAddress, _tokenId, _recipient);
+        _cancelAuction(_nftAddress, _tokenId, msg.sender);
     }
 
     /// @dev Cancels an auction when the contract is paused.

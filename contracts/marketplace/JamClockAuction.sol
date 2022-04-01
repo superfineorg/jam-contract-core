@@ -232,20 +232,22 @@ contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
      * @notice This is a state-modifying function that can be called while the contract is paused.
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
-     * @param recipient - The address where the NFT is returned to.
      */
-    function cancelAuction(
-        address nftAddress,
-        uint256 tokenId,
-        address recipient
-    ) external override {
+    function cancelAuction(address nftAddress, uint256 tokenId)
+        external
+        override
+    {
         Auction storage auction = auctions[nftAddress][tokenId];
         require(_isOnAuction(auction), "JamClockAuction: auction not exists");
         require(
-            msg.sender == auction.seller,
+            msg.sender == auction.seller ||
+                msg.sender ==
+                JamMarketplaceHub(_marketplaceHub).getMarketplace(
+                    keccak256("JAM_P2P_TRADING")
+                ),
             "JamClockAuction: only seller can cancel auction"
         );
-        _cancelAuction(nftAddress, tokenId, recipient);
+        _cancelAuction(nftAddress, tokenId, msg.sender);
     }
 
     /**

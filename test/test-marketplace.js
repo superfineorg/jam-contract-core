@@ -155,13 +155,13 @@ describe("Mint users some NFTs to sell and some ERC20 tokens to buy", () => {
   });
 
   it("Mint some NFTs to sell", async () => {
-    for (let tokenId = 0; tokenId < 8; tokenId++)
+    for (let tokenId = 0; tokenId < 9; tokenId++)
       await this.erc721Factory
         .connect(this.minter)
         .attach(this.erc721Contract.address)
         .mint(this.seller.address, tokenId, `https://gamejam.com/NFT${tokenId}.json`);
     let balance = await this.erc721Contract.balanceOf(this.seller.address);
-    expect(balance.toString()).to.equal("8");
+    expect(balance.toString()).to.equal("9");
   });
 });
 
@@ -261,7 +261,7 @@ describe("Test JamClockAuction", () => {
     await this.jamClockAuctionFactory
       .connect(this.seller)
       .attach(this.jamClockAuctionContract.address)
-      .cancelAuction(this.erc721Contract.address, 3, this.seller.address);
+      .cancelAuction(this.erc721Contract.address, 3);
     let currentOwner = await this.erc721Contract.ownerOf(3);
     expect(currentOwner).to.equal(this.seller.address);
   });
@@ -328,7 +328,7 @@ describe("Test JamTraditionalAuction", () => {
     await this.jamTraditionalAuctionFactory
       .connect(this.seller)
       .attach(this.jamTraditionalAuctionContract.address)
-      .cancelAuction(this.erc721Contract.address, 4, this.seller.address);
+      .cancelAuction(this.erc721Contract.address, 4);
     let currentOwner = await this.erc721Contract.ownerOf(4);
     expect(isAuctionCancelable).to.equal(true);
     expect(currentOwner).to.equal(this.seller.address);
@@ -615,6 +615,38 @@ describe("Test JamP2PTrading", () => {
       .acceptOffer(this.buyer1.address, this.erc721Contract.address, 7);
     let currentOwner = await this.erc721Contract.ownerOf(7);
     expect(currentOwner).to.equal(this.buyer1.address);
+  });
+
+  it("Accept an offer for an NFT which is currently on marketplace", async () => {
+    let auctionEndsAt = Math.floor(Date.now() / 1000 + 700);
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamTraditionalAuctionContract.address, 8);
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .createAuction(
+        this.erc721Contract.address,
+        8,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("20"),
+        auctionEndsAt
+      );
+    await this.jamP2PTradingFactory
+      .connect(this.buyer1)
+      .attach(this.jamP2PTradingContract.address)
+      .makeOffer(
+        this.erc721Contract.address,
+        8,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("30"),
+        { value: hre.ethers.utils.parseEther("30") }
+      );
+    await this.jamP2PTradingFactory
+      .connect(this.seller)
+      .attach(this.jamP2PTradingContract.address)
+      .acceptOffer(this.buyer1.address, this.erc721Contract.address, 8);
   });
 });
 

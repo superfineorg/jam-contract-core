@@ -90,11 +90,10 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable {
         JamMarketplaceHub(_marketplaceHub).registerMarketplace(marketplaceId);
     }
 
-    function cancelAuction(
-        address nftAddress,
-        uint256 tokenId,
-        address recipient
-    ) external virtual {}
+    function cancelAuction(address nftAddress, uint256 tokenId)
+        external
+        virtual
+    {}
 
     function withdrawRoyalty(address currency) public {
         uint256 lastWithdraw = _lastWithdraws[msg.sender][currency];
