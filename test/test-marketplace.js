@@ -433,10 +433,189 @@ describe("Test JamTraditionalAuction", () => {
   //   let currentOwner = await this.erc721Contract.ownerOf(4);
   //   expect(currentOwner).to.equal(this.buyer2.address);
   // });
+
+  it("Create another auction using native token", async () => {
+    let auctionEndsAt = Math.floor(Date.now() / 1000 + 700);
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamTraditionalAuctionContract.address, 5);
+    await this.jamTraditionalAuctionFactory
+      .connect(this.seller)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .createAuction(
+        this.erc721Contract.address,
+        5,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("5"),
+        auctionEndsAt
+      );
+    await this.jamTraditionalAuctionFactory
+      .connect(this.buyer1)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .bid(
+        this.erc721Contract.address,
+        5,
+        hre.ethers.utils.parseEther("6"),
+        { value: hre.ethers.utils.parseEther("6") }
+      );
+    await this.jamTraditionalAuctionFactory
+      .connect(this.buyer2)
+      .attach(this.jamTraditionalAuctionContract.address)
+      .bid(
+        this.erc721Contract.address,
+        5,
+        hre.ethers.utils.parseEther("7"),
+        { value: hre.ethers.utils.parseEther("7") }
+      );
+    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 5);
+    let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 5);
+    expect(isAuctionCancelable).to.equal(false);
+    expect(auction.seller).to.equal(this.seller.address);
+    expect(auction.currency).to.equal(ZERO_ADDRESS);
+    expect(auction.highestBidder).to.equal(this.buyer2.address);
+    expect(auction.highestBidAmount).to.equal(hre.ethers.utils.parseEther("7"));
+    expect(auction.endAt).not.to.equal("0");
+  });
 });
 
 describe("Test JamP2PTrading", () => {
-  //
+  it("Make a new offer for an existent NFT", async () => {
+    await this.jamP2PTradingFactory
+      .connect(this.buyer1)
+      .attach(this.jamP2PTradingContract.address)
+      .makeOffer(
+        this.erc721Contract.address,
+        6,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("12"),
+        { value: hre.ethers.utils.parseEther("12") }
+      );
+    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
+    let offer = await this.jamP2PTradingContract.getSpecificOffer(
+      this.buyer1.address,
+      this.erc721Contract.address,
+      6
+    );
+    expect(offer.offeror).to.equal(this.buyer1.address);
+    expect(offer.nftAddress).to.equal(this.erc721Contract.address);
+    expect(offer.tokenId.toString()).to.equal("6");
+    expect(offer.currency).to.equal(ZERO_ADDRESS);
+    expect(offer.amount.toString()).to.equal(hre.ethers.utils.parseEther("12").toString());
+    expect(offersForNFT.length).to.equal(1);
+    expect(offersForNFT[0].toString()).to.equal(offer.toString());
+    expect(offersOfOfferer.length).to.equal(1);
+    expect(offersOfOfferer[0].toString()).to.equal(offer.toString());
+  });
+
+  it("Update this offer", async () => {
+    await this.erc20Factory
+      .connect(this.buyer1)
+      .attach(this.erc20Contract.address)
+      .approve(
+        this.jamP2PTradingContract.address,
+        hre.ethers.utils.parseEther("15")
+      );
+    await this.jamP2PTradingFactory
+      .connect(this.buyer1)
+      .attach(this.jamP2PTradingContract.address)
+      .updateOffer(
+        this.erc721Contract.address,
+        6,
+        this.erc20Contract.address,
+        hre.ethers.utils.parseEther("15")
+      );
+    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
+    let offer = await this.jamP2PTradingContract.getSpecificOffer(
+      this.buyer1.address,
+      this.erc721Contract.address,
+      6
+    );
+    expect(offer.offeror).to.equal(this.buyer1.address);
+    expect(offer.nftAddress).to.equal(this.erc721Contract.address);
+    expect(offer.tokenId.toString()).to.equal("6");
+    expect(offer.currency).to.equal(this.erc20Contract.address);
+    expect(offer.amount.toString()).to.equal(hre.ethers.utils.parseEther("15").toString());
+    expect(offersForNFT.length).to.equal(1);
+    expect(offersForNFT[0].toString()).to.equal(offer.toString());
+    expect(offersOfOfferer.length).to.equal(1);
+    expect(offersOfOfferer[0].toString()).to.equal(offer.toString());
+  });
+
+  it("Cancel this offer", async () => {
+    await this.jamP2PTradingFactory
+      .connect(this.buyer1)
+      .attach(this.jamP2PTradingContract.address)
+      .cancelOffer(this.erc721Contract.address, 6);
+    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
+    let offer = await this.jamP2PTradingContract.getSpecificOffer(
+      this.buyer1.address,
+      this.erc721Contract.address,
+      6
+    );
+    expect(offer.offeror).to.equal(ZERO_ADDRESS);
+    expect(offer.nftAddress).to.equal(ZERO_ADDRESS);
+    expect(offer.tokenId.toString()).to.equal("0");
+    expect(offer.currency).to.equal(ZERO_ADDRESS);
+    expect(offer.amount.toString()).to.equal("0");
+    expect(offersForNFT.length).to.equal(0);
+    expect(offersOfOfferer.length).to.equal(0);
+  });
+
+  it("The offeror offers again and the owner accepts", async () => {
+    await this.erc20Factory
+      .connect(this.buyer2)
+      .attach(this.erc20Contract.address)
+      .approve(
+        this.jamP2PTradingContract.address,
+        hre.ethers.utils.parseEther("40")
+      );
+    await this.jamP2PTradingFactory
+      .connect(this.buyer2)
+      .attach(this.jamP2PTradingContract.address)
+      .makeOffer(
+        this.erc721Contract.address,
+        6,
+        this.erc20Contract.address,
+        hre.ethers.utils.parseEther("40")
+      );
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamP2PTradingContract.address, 6);
+    await this.jamP2PTradingFactory
+      .connect(this.seller)
+      .attach(this.jamP2PTradingContract.address)
+      .acceptOffer(this.buyer2.address, this.erc721Contract.address, 6);
+    let currentOwner = await this.erc721Contract.ownerOf(6);
+    expect(currentOwner).to.equal(this.buyer2.address);
+  });
+
+  it("Another trading session using native token", async () => {
+    await this.jamP2PTradingFactory
+      .connect(this.buyer1)
+      .attach(this.jamP2PTradingContract.address)
+      .makeOffer(
+        this.erc721Contract.address,
+        7,
+        ZERO_ADDRESS,
+        hre.ethers.utils.parseEther("8"),
+        { value: hre.ethers.utils.parseEther("8") }
+      );
+    await this.erc721Factory
+      .connect(this.seller)
+      .attach(this.erc721Contract.address)
+      .approve(this.jamP2PTradingContract.address, 7);
+    await this.jamP2PTradingFactory
+      .connect(this.seller)
+      .attach(this.jamP2PTradingContract.address)
+      .acceptOffer(this.buyer1.address, this.erc721Contract.address, 7);
+    let currentOwner = await this.erc721Contract.ownerOf(7);
+    expect(currentOwner).to.equal(this.buyer1.address);
+  });
 });
 
 let sleep = ms => {
