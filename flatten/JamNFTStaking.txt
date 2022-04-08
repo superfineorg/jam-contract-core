@@ -3446,6 +3446,11 @@ contract JamNFTStaking is
         uint256 stakingMoment;
     }
 
+    struct WhitelistedNFT {
+        NFTType nftType;
+        address nftAddress;
+    }
+
     uint256 public lockDuration;
     uint256 public rewardPerDay;
     address public rewardToken;
@@ -3511,6 +3516,30 @@ contract JamNFTStaking is
             (elapsedTime * rewardPerDay * stakingInfo.numStakedNFTs) /
             _totalStakedNFTs /
             1 days;
+    }
+
+    function estimateDailyReward(address participant)
+        external
+        view
+        returns (uint256)
+    {
+        StakingInfo storage stakingInfo = _stakingInfoOf[participant];
+        if (_totalStakedNFTs == 0) return 0;
+        return (rewardPerDay * stakingInfo.numStakedNFTs) / _totalStakedNFTs;
+    }
+
+    function getNFTWhitelist() external view returns (WhitelistedNFT[] memory) {
+        WhitelistedNFT[] memory whitelist = new WhitelistedNFT[](
+            _erc721Whitelist.length + _erc1155Whitelist.length
+        );
+        for (uint256 i = 0; i < _erc721Whitelist.length; i++)
+            whitelist[i] = WhitelistedNFT(NFTType.ERC721, _erc721Whitelist[i]);
+        for (uint256 j = 0; j < _erc1155Whitelist.length; j++)
+            whitelist[j + _erc721Whitelist.length] = WhitelistedNFT(
+                NFTType.ERC1155,
+                _erc1155Whitelist[j]
+            );
+        return whitelist;
     }
 
     function getStakedNFTs(address participant)

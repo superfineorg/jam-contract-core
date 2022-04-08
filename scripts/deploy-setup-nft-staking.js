@@ -43,7 +43,7 @@ let deploy = async () => {
   deployInfo[this.networkName][ERC721] = this.erc721Contract.address;
 
   // Deploy ERC1155
-  console.log(`Deploying ${ERC1155} with parameters: "https://gamejam.com/nft1155/`);
+  console.log(`Deploying ${ERC1155} with parameters: "https://gamejam.com/nft1155/"`);
   this.erc1155Factory = await hre.ethers.getContractFactory(ERC1155);
   this.erc1155Contract = await this.erc1155Factory.deploy("https://gamejam.com/nft1155/");
   await this.erc1155Contract.deployed();

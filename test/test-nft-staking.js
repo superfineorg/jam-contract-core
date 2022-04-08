@@ -110,7 +110,13 @@ describe("Test NFT staking program", () => {
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
       .whitelistNFT([this.nft721Contract.address, this.nft1155Contract.address], [0, 1]);
+    let whitelist = await this.nftStakingContract.getNFTWhitelist();
     let unstakedNFTs = await this.nftStakingContract.getUnstakedNFTs(this.participant.address);
+    expect(whitelist.length).to.equal(2);
+    expect(whitelist[0].nftType.toString()).to.equal("0");
+    expect(whitelist[0].nftAddress).to.equal(this.nft721Contract.address);
+    expect(whitelist[1].nftType.toString()).to.equal("1");
+    expect(whitelist[1].nftAddress).to.equal(this.nft1155Contract.address);
     expect(unstakedNFTs.length).to.equal(0);
   });
 
@@ -188,6 +194,8 @@ describe("Test NFT staking program", () => {
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
       .claimReward();
+    let dailyReward = await this.nftStakingContract.estimateDailyReward(this.participant.address);
+    expect(dailyReward.toString()).to.equal("100000");
   });
 
   it("Stake some new ERC1155 NFTs", async () => {
@@ -200,6 +208,8 @@ describe("Test NFT staking program", () => {
       .attach(this.nftStakingContract.address)
       .stake([this.nft1155Contract.address], [1], [15]);
     let stakedNFTs = await this.nftStakingContract.getStakedNFTs(this.participant.address);
+    let dailyReward = await this.nftStakingContract.estimateDailyReward(this.participant.address);
+    expect(dailyReward.toString()).to.equal("100000");
     expect(stakedNFTs.length).to.equal(2);
     expect(stakedNFTs[1].nftType).to.equal(1);
     expect(stakedNFTs[1].nftAddress).to.equal(this.nft1155Contract.address);
