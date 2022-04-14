@@ -33,21 +33,21 @@ let deploy = async () => {
   // Deploy ERC721
   console.log(`Deploying ${ERC721} with parameters: "${TESTER_ADDR}" "Gamejam-Awesome-NFT" "JamNFT" "https://gamejam.com/nft721/"`);
   this.erc721Factory = await hre.ethers.getContractFactory(ERC721);
-  this.erc721Contract = await this.erc721Factory.deploy(
-    TESTER_ADDR,
-    "Gamejam-Awesome-NFT",
-    "JamNFT",
-    "https://gamejam.com/nft721/"
-  );
-  await this.erc721Contract.deployed();
-  deployInfo[this.networkName][ERC721] = this.erc721Contract.address;
+  // this.erc721Contract = await this.erc721Factory.deploy(
+  //   TESTER_ADDR,
+  //   "Gamejam-Awesome-NFT",
+  //   "JamNFT",
+  //   "https://gamejam.com/nft721/"
+  // );
+  // await this.erc721Contract.deployed();
+  // deployInfo[this.networkName][ERC721] = this.erc721Contract.address;
 
   // Deploy ERC1155
   console.log(`Deploying ${ERC1155} with parameters: "https://gamejam.com/nft1155/"`);
   this.erc1155Factory = await hre.ethers.getContractFactory(ERC1155);
-  this.erc1155Contract = await this.erc1155Factory.deploy("https://gamejam.com/nft1155/");
-  await this.erc1155Contract.deployed();
-  deployInfo[this.networkName][ERC1155] = this.erc1155Contract.address;
+  // this.erc1155Contract = await this.erc1155Factory.deploy("https://gamejam.com/nft1155/");
+  // await this.erc1155Contract.deployed();
+  // deployInfo[this.networkName][ERC1155] = this.erc1155Contract.address;
 
   // Deploy JamNFTStaking
   console.log(`Deploying ${JAM_NFT_STAKING} with parameters: "${300}" "${"2000000000000000000"}" "${ZERO_ADDRESS}"`);
@@ -85,18 +85,18 @@ let setup = async () => {
     .transfer(this.nftStakingContract.address, "50000000000000000000000000");
 
   // Whitelist the ERC721 and ERC1155 tokens
-  console.log(`Whitelisting ${this.erc721Contract.address} and ${this.erc1155Contract.address}...`);
+  console.log(`Whitelisting ${deployInfo[this.networkName][ERC721]} and ${deployInfo[this.networkName][ERC1155]}...`);
   await this.nftStakingFactory
     .connect(this.deployer)
     .attach(this.nftStakingContract.address)
-    .whitelistNFT([this.erc721Contract.address, this.erc1155Contract.address], [0, 1]);
+    .whitelistNFT([deployInfo[this.networkName][ERC721], deployInfo[this.networkName][ERC1155]], [0, 1]);
 
   // Set minter role of JamNFT1155 to tester
   console.log(`Setting minter role of JamNFT1155 to ${TESTER_ADDR}`);
-  let minterRole = await this.erc1155Contract.MINTER_ROLE();
+  let minterRole = await this.erc1155Factory.attach(deployInfo[this.networkName][ERC1155]).MINTER_ROLE();
   await this.erc1155Factory
     .connect(this.deployer)
-    .attach(this.erc1155Contract.address)
+    .attach(deployInfo[this.networkName][ERC1155])
     .grantRole(minterRole, TESTER_ADDR);
 };
 
