@@ -272,7 +272,7 @@ describe("Test NFT staking program", () => {
         .connect(this.deployer)
         .attach(this.nftStakingContract.address)
         .unstake([this.nft1155Contract.address], [1], [8])
-    ).to.be.revertedWith("JamNFTStaking: only owner can unstake");
+    ).to.be.revertedWith("JamNFTStaking: not enough NFTs to unstake");
     await expect(
       this.nftStakingFactory
         .connect(this.participant)

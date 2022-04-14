@@ -54,7 +54,6 @@ contract JamNFTStaking is
     uint256 private _totalStakedNFTs;
     mapping(address => NFTType) private _typeOf;
     mapping(address => StakingInfo) private _stakingInfoOf;
-    mapping(address => mapping(uint256 => address)) private _ownerOf;
     mapping(address => bool) private _operators;
     mapping(address => uint256) private _savingOf;
 
@@ -415,7 +414,6 @@ contract JamNFTStaking is
         stakingInfo.lastActionMoment = block.timestamp;
         stakingInfo.numStakedNFTs += quantity;
         _totalStakedNFTs += quantity;
-        _ownerOf[nftAddress][tokenId] = msg.sender;
         emit NFTStaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -428,10 +426,6 @@ contract JamNFTStaking is
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155Whitelisted[nftAddress],
             "JamNFTStaking: this NFT is not supported"
-        );
-        require(
-            _ownerOf[nftAddress][tokenId] == msg.sender,
-            "JamNFTStaking: only owner can unstake"
         );
         require(quantity > 0, "JamNFTStaking: unstake nothing");
         _savingOf[msg.sender] = getCurrentReward(msg.sender);
@@ -448,7 +442,7 @@ contract JamNFTStaking is
             );
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] == 1,
-                "JamNFTStaking: NFT not found"
+                "JamNFTStaking: only owner can unstake"
             );
             ERC721Enumerable(nftAddress).safeTransferFrom(
                 address(this),
@@ -504,7 +498,6 @@ contract JamNFTStaking is
         stakingInfo.lastActionMoment = block.timestamp;
         stakingInfo.numStakedNFTs -= quantity;
         _totalStakedNFTs -= quantity;
-        delete _ownerOf[nftAddress][tokenId];
         emit NFTUnstaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
