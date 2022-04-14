@@ -56,6 +56,7 @@ contract JamNFTStaking is
     mapping(address => StakingInfo) private _stakingInfoOf;
     mapping(address => bool) private _operators;
     mapping(address => uint256) private _savingOf;
+    mapping(address => uint256) private _numStakedNFTs;
 
     // Whitelist
     address[] private _erc721Whitelist;
@@ -338,6 +339,41 @@ contract JamNFTStaking is
         }
     }
 
+    function unwhitelistNFT(address[] calldata nftAddresses)
+        external
+        onlyOperator
+    {
+        for (uint256 i = 0; i < nftAddresses.length; i++) {
+            address nftAddress = nftAddresses[i];
+            require(
+                _numStakedNFTs[nftAddress] == 0,
+                "JamNFTStaking: NFTs still staked"
+            );
+            if (_isERC721Whitelisted[nftAddress]) {
+                _isERC721Whitelisted[nftAddress] = false;
+                for (uint256 j = 0; j < _erc721Whitelist.length; j++)
+                    if (_erc721Whitelist[j] == nftAddress) {
+                        _erc721Whitelist[j] = _erc721Whitelist[
+                            _erc721Whitelist.length - 1
+                        ];
+                        _erc721Whitelist.pop();
+                        break;
+                    }
+            }
+            if (_isERC1155Whitelisted[nftAddress]) {
+                _isERC1155Whitelisted[nftAddress] = false;
+                for (uint256 k = 0; k < _erc1155Whitelist.length; k++)
+                    if (_erc1155Whitelist[k] == nftAddress) {
+                        _erc1155Whitelist[k] = _erc1155Whitelist[
+                            _erc1155Whitelist.length - 1
+                        ];
+                        _erc1155Whitelist.pop();
+                        break;
+                    }
+            }
+        }
+    }
+
     function stake(
         address[] memory nftAddresses,
         uint256[] memory tokenIds,
@@ -414,6 +450,7 @@ contract JamNFTStaking is
         stakingInfo.lastActionMoment = block.timestamp;
         stakingInfo.numStakedNFTs += quantity;
         _totalStakedNFTs += quantity;
+        _numStakedNFTs[nftAddress] += quantity;
         emit NFTStaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
@@ -498,6 +535,7 @@ contract JamNFTStaking is
         stakingInfo.lastActionMoment = block.timestamp;
         stakingInfo.numStakedNFTs -= quantity;
         _totalStakedNFTs -= quantity;
+        _numStakedNFTs[nftAddress] -= quantity;
         emit NFTUnstaked(msg.sender, nftAddress, tokenId, quantity);
     }
 
