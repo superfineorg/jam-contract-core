@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "./tokens/ERC1155/JamNFT1155.sol";
 
 contract JamNFTStaking is
@@ -304,6 +305,17 @@ contract JamNFTStaking is
 
         for (uint256 i = 0; i < nftAddresses.length; i++) {
             address nftAddress = nftAddresses[i];
+            bool success = ERC165Checker.supportsERC165(nftAddress);
+            if (success)
+                if (types[i] == NFTType.ERC721)
+                    success = IERC165(nftAddress).supportsInterface(
+                        type(IERC721).interfaceId
+                    );
+                else if (types[i] == NFTType.ERC1155)
+                    success = IERC165(nftAddress).supportsInterface(
+                        type(IERC1155).interfaceId
+                    );
+            require(success, "JamNFTStaking: cannot whitelist non-NFT address");
             _typeOf[nftAddress] = types[i];
             if (types[i] == NFTType.ERC721) {
                 _isERC721Whitelisted[nftAddress] = true;

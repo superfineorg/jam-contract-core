@@ -106,6 +106,18 @@ describe("Test NFT staking program", () => {
   });
 
   it("Whitelist the previously deployed ERC721 and ERC1155 tokens", async () => {
+    await expect(
+      this.nftStakingFactory
+        .connect(this.operator)
+        .attach(this.nftStakingContract.address)
+        .whitelistNFT([ZERO_ADDRESS], [0])
+    ).to.be.revertedWith("JamNFTStaking: cannot whitelist non-NFT address");
+    await expect(
+      this.nftStakingFactory
+        .connect(this.operator)
+        .attach(this.nftStakingContract.address)
+        .whitelistNFT([this.nft721Contract.address], [1])
+    ).to.be.revertedWith("JamNFTStaking: cannot whitelist non-NFT address");
     await this.nftStakingFactory
       .connect(this.operator)
       .attach(this.nftStakingContract.address)
