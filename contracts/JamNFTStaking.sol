@@ -562,14 +562,22 @@ contract JamNFTStaking is
         _unpause();
     }
 
-    function emergencyWithdraw(address payable recipient)
+    function emergencyWithdraw(address payable recipient, address currency)
         external
         onlyOwner
         whenPaused
     {
-        uint256 amount = address(this).balance;
-        (bool success, ) = recipient.call{value: amount}("");
-        require(success, "JamNFTStaking: emergency withdraw failed");
-        emit EmergencyWithdrawn(recipient, amount);
+        if (currency == address(0)) {
+            uint256 amount = address(this).balance;
+            (bool success, ) = recipient.call{value: amount}("");
+            require(success, "JamNFTStaking: emergency withdraw failed");
+            emit EmergencyWithdrawn(recipient, amount);
+        } else {
+            IERC20 currencyContract = IERC20(currency);
+            uint256 amount = currencyContract.balanceOf(address(this));
+            bool success = currencyContract.transfer(recipient, amount);
+            require(success, "JamNFTStaking: emergency withdraw failed");
+            emit EmergencyWithdrawn(recipient, amount);
+        }
     }
 }

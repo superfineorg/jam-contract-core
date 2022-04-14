@@ -356,7 +356,11 @@ describe("Test NFT staking program", () => {
     await this.nftStakingFactory
       .connect(this.deployer)
       .attach(this.nftStakingContract.address)
-      .emergencyWithdraw(this.deployer.address);
+      .emergencyWithdraw(this.deployer.address, ZERO_ADDRESS);
+    await this.nftStakingFactory
+      .connect(this.deployer)
+      .attach(this.nftStakingContract.address)
+      .emergencyWithdraw(this.deployer.address, this.erc20Contract.address);
   });
 
   it("Unpause the contract", async () => {
