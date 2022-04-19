@@ -63,6 +63,23 @@ describe("Test OGPass and Super Happy Frens", () => {
     expect(shfMinterRole).to.equal(true);
   });
 
+  it("User buys some SuperHappyFrens NFTs with normal price", async () => {
+    await expect(
+      this.mintingFactory
+        .connect(this.user)
+        .attach(this.mintingContract.address)
+        .buySuperHappyFrens(2, { value: 6600 })
+    ).to.be.revertedWith("JamOGPassMinting: not enough money");
+    await this.mintingFactory
+      .connect(this.user)
+      .attach(this.mintingContract.address)
+      .buySuperHappyFrens(2, { value: 7000 });
+    for (let i = 0; i <= 1; i++) {
+      let currentOwner = await this.shfContract.ownerOf(i);
+      expect(currentOwner).to.equal(this.user.address);
+    }
+  });
+
   it("User mints himself an OGPass", async () => {
     await expect(
       this.mintingFactory
@@ -73,45 +90,20 @@ describe("Test OGPass and Super Happy Frens", () => {
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
-      .mintOGPass({ value: 1235 });
+      .mintOGPass({ value: 1234 });
     let currentOwner = await this.ogPassContract.ownerOf(0);
     expect(currentOwner).to.equal(this.user.address);
   });
 
-  it("User buys a SuperHappyFrens NFT with discount price", async () => {
+  it("User buys some SuperHappyFrens NFTs with discount price", async () => {
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
-      .buySuperHappyFrens(0, { value: 3000 });
-    await expect(
-      this.mintingFactory
-        .connect(this.user)
-        .attach(this.mintingContract.address)
-        .buySuperHappyFrens(0, { value: 3000 })
-    ).to.be.revertedWith("JamOGPassMinting: ogPass already used");
-    let currentOwner = await this.shfContract.ownerOf(0);
-    expect(currentOwner).to.equal(this.user.address);
-  });
-
-  it("Check used OGPass ids", async () => {
-    let usedIds = await this.mintingContract.getUsedOGPass(this.user.address);
-    expect(usedIds.length).to.equal(1);
-    expect(usedIds[0].toString()).to.equal("0");
-  });
-
-  it("User buys another SuperHappyFrens NFT with normal price", async () => {
-    await expect(
-      this.mintingFactory
-        .connect(this.user)
-        .attach(this.mintingContract.address)
-        .buySuperHappyFrens(1, { value: 3000 })
-    ).to.be.revertedWith("JamOGPassMinting: not enough money");
-    await this.mintingFactory
-      .connect(this.user)
-      .attach(this.mintingContract.address)
-      .buySuperHappyFrens(1, { value: 4000 });
-    let currentOwner = await this.shfContract.ownerOf(1);
-    expect(currentOwner).to.equal(this.user.address);
+      .buySuperHappyFrens(3, { value: 7000 });
+    for (let i = 2; i <= 4; i++) {
+      let currentOwner = await this.shfContract.ownerOf(i);
+      expect(currentOwner).to.equal(this.user.address);
+    }
   });
 
   it("Mint more OGPass to test", async () => {

@@ -3233,7 +3233,7 @@ contract JamSuperHappyFrens is
 
 // File contracts/JamOGPassMinting.sol
 
-// SPDX-License-Identifier: MIT
+/* SPDX-License-Identifier: MIT */
 
 pragma solidity ^0.8.0;
 
@@ -3245,8 +3245,6 @@ contract JamOGPassMinting is Ownable {
     uint256 public mintingFee;
     uint256 public jamSuperHappyFrensPrice;
     uint256 public jamSuperHappyFrensDiscountPrice;
-    mapping(uint256 => bool) private _isOGPassUsed;
-    mapping(address => uint256[]) private _usedOGPassIds;
 
     constructor(
         address jamOGPass,
@@ -3266,14 +3264,6 @@ contract JamOGPassMinting is Ownable {
         jamSuperHappyFrensDiscountPrice = jamSuperHappyFrensDiscountPrice_;
     }
 
-    function getUsedOGPass(address user)
-        external
-        view
-        returns (uint256[] memory)
-    {
-        return _usedOGPassIds[user];
-    }
-
     function mintOGPass() external payable {
         require(
             msg.value >= mintingFee,
@@ -3286,24 +3276,20 @@ contract JamOGPassMinting is Ownable {
         require(success, "JamOGPassMinting: return fee failed");
     }
 
-    function buySuperHappyFrens(uint256 ogPassId) external payable {
+    function buySuperHappyFrens(uint256 quantity) external payable {
+        require(quantity > 0, "JamOGPassMinting: cannot mint zero NFT");
         uint256 price = jamSuperHappyFrensPrice;
-        try jamOGPassContract.ownerOf(ogPassId) returns (address owner) {
-            if (owner == msg.sender) {
-                require(
-                    !_isOGPassUsed[ogPassId],
-                    "JamOGPassMinting: ogPass already used"
-                );
-                price = jamSuperHappyFrensDiscountPrice;
-                _isOGPassUsed[ogPassId] = true;
-                _usedOGPassIds[msg.sender].push(ogPassId);
-            }
-        } catch {}
-        require(msg.value >= price, "JamOGPassMinting: not enough money");
-        jamSuperHappyFrensContract.mintTo(msg.sender);
-        (bool success, ) = payable(msg.sender).call{value: msg.value - price}(
-            ""
+        if (jamOGPassContract.balanceOf(msg.sender) > 0)
+            price = jamSuperHappyFrensDiscountPrice;
+        require(
+            msg.value >= price * quantity,
+            "JamOGPassMinting: not enough money"
         );
+        for (uint256 i = 0; i < quantity; i++)
+            jamSuperHappyFrensContract.mintTo(msg.sender);
+        (bool success, ) = payable(msg.sender).call{
+            value: msg.value - price * quantity
+        }("");
         require(success, "JamOGPassMinting: return money failed");
     }
 
