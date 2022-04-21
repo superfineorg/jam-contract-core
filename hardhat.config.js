@@ -93,7 +93,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: BSC_API_KEY
+    apiKey: ETHERSCAN_API_KEY
   },
   solidity: {
     version: "0.8.6",

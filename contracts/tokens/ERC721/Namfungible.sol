@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "./ERC721Tradable.sol";
 
-contract JamOGPass is
+contract Namfungible is
     Context,
     AccessControlEnumerable,
     ERC721Burnable,
@@ -74,7 +74,7 @@ contract JamOGPass is
         override(ERC721, ERC721Tradable)
         returns (string memory)
     {
-        require(_exists(tokenId), "JamOGPass: token does not exist");
+        require(_exists(tokenId), "Namfungible: token does not exist");
         return
             string(
                 abi.encodePacked(
@@ -93,7 +93,7 @@ contract JamOGPass is
     {
         require(
             index < ERC721.balanceOf(owner),
-            "JamOGPass: owner index out of bounds"
+            "Namfungible: owner index out of bounds"
         );
         return _ownedTokens[owner][index];
     }
@@ -103,7 +103,10 @@ contract JamOGPass is
     }
 
     function tokenByIndex(uint256 index) public view virtual returns (uint256) {
-        require(index < totalSupply(), "JamOGPass: global index out of bounds");
+        require(
+            index < totalSupply(),
+            "Namfungible: global index out of bounds"
+        );
         return _allTokens[index];
     }
 
@@ -131,7 +134,7 @@ contract JamOGPass is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamOGPass: must have minter role to mint"
+            "Namfungible: must have minter role to mint"
         );
         _safeMint(to, tokenId);
     }
@@ -139,7 +142,7 @@ contract JamOGPass is
     function mintTo(address to) public override {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamOGPass: must have minter role to mint"
+            "Namfungible: must have minter role to mint"
         );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
@@ -154,7 +157,7 @@ contract JamOGPass is
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamOGPass: must have pauser role to pause"
+            "Namfungible: must have pauser role to pause"
         );
         _pause();
     }
@@ -162,7 +165,7 @@ contract JamOGPass is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamOGPass: must have pauser role to unpause"
+            "Namfungible: must have pauser role to unpause"
         );
         _unpause();
     }
