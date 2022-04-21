@@ -31,14 +31,14 @@ contract JamOGPassMinting is Ownable {
         jamSuperHappyFrensDiscountPrice = jamSuperHappyFrensDiscountPrice_;
     }
 
-    function mintOGPass() external payable {
+    function mintOGPass(uint256 quantity) external payable {
         require(
-            msg.value >= mintingFee,
+            msg.value >= mintingFee * quantity,
             "JamOGPassMinting: not enough fee to mint"
         );
-        jamOGPassContract.mintTo(msg.sender);
+        jamOGPassContract.mintBulk(msg.sender, quantity);
         (bool success, ) = payable(msg.sender).call{
-            value: msg.value - mintingFee
+            value: msg.value - mintingFee * quantity
         }("");
         require(success, "JamOGPassMinting: return fee failed");
     }

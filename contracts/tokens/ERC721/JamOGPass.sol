@@ -27,7 +27,6 @@ contract JamOGPass is
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    uint256 public nftLimit;
     string private _baseTokenURI;
     uint256[] private _allTokens; // Array with all token ids, used for enumeration
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
@@ -39,11 +38,9 @@ contract JamOGPass is
         string memory name_,
         string memory symbol_,
         string memory baseTokenURI_,
-        address proxyRegistryAddress,
-        uint256 nftLimit_
+        address proxyRegistryAddress
     ) ERC721Tradable(name_, symbol_, proxyRegistryAddress) {
         _baseTokenURI = baseTokenURI_;
-        nftLimit = nftLimit_;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
         _setupRole(PAUSER_ROLE, msg.sender);
@@ -136,7 +133,6 @@ contract JamOGPass is
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
-        require(tokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
         _safeMint(to, tokenId);
     }
 
@@ -145,14 +141,14 @@ contract JamOGPass is
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
-        require(
-            _nextTokenId.current() < nftLimit,
-            "JamNFT721: Maximum NFTs minted"
-        );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
         _nextTokenId.increment();
         _safeMint(to, currentTokenId);
+    }
+
+    function mintBulk(address to, uint256 quantity) external {
+        for (uint256 i = 0; i < quantity; i++) mintTo(to);
     }
 
     function pause() public virtual {

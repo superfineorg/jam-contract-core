@@ -18,8 +18,7 @@ before("Deploy contracts", async () => {
     "OGPass NFT",
     "OGP",
     "https://gamejam.com/og-pass/",
-    "0x0000000000000000000000000000000000000022",
-    2000
+    "0x0000000000000000000000000000000000000022"
   );
   await this.ogPassContract.deployed();
 
@@ -85,12 +84,12 @@ describe("Test OGPass and Super Happy Frens", () => {
       this.mintingFactory
         .connect(this.user)
         .attach(this.mintingContract.address)
-        .mintOGPass({ value: 1233 })
+        .mintOGPass(2, { value: 2466 })
     ).to.be.revertedWith("JamOGPassMinting: not enough fee to mint");
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
-      .mintOGPass({ value: 1234 });
+      .mintOGPass(2, { value: 2468 });
     let currentOwner = await this.ogPassContract.ownerOf(0);
     expect(currentOwner).to.equal(this.user.address);
   });
@@ -107,14 +106,13 @@ describe("Test OGPass and Super Happy Frens", () => {
   });
 
   it("Mint more OGPass to test", async () => {
-    for (let i = 0; i < 8; i++)
-      await this.mintingFactory
-        .connect(this.user)
-        .attach(this.mintingContract.address)
-        .mintOGPass({ value: 2222 });
+    await this.mintingFactory
+      .connect(this.user)
+      .attach(this.mintingContract.address)
+      .mintOGPass(8, { value: 2222 * 8 });
     let ownedTokens = await this.ogPassContract.getOwnedTokens(this.user.address);
-    expect(ownedTokens.length).to.equal(9);
-    for (let i = 0; i < 9; i++) {
+    expect(ownedTokens.length).to.equal(10);
+    for (let i = 0; i < 10; i++) {
       expect(ownedTokens[i].tokenId.toString()).to.equal(i.toString());
       expect(ownedTokens[i].tokenURI).to.equal(`https://gamejam.com/og-pass/${i}.json`);
     }

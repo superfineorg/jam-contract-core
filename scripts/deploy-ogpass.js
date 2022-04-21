@@ -14,14 +14,13 @@ async function deploy() {
   console.log("Balance:", (await deployer.getBalance()).toString());
 
   // Deploy OGPass
-  console.log(`Deploying ${OG_PASS} with parameters: "OGPass NFT" "OGP" "https://gamejam.com/og-pass/" "0x0000000000000000000000000000000000000022" "2000"`);
+  console.log(`Deploying ${OG_PASS} with parameters: "OGPass NFT" "OGP" "https://gamejam.com/og-pass/" "0x0000000000000000000000000000000000000022"`);
   let ogPassFactory = await hre.ethers.getContractFactory(OG_PASS);
   let ogPassContract = await ogPassFactory.deploy(
     "OGPass NFT",
     "OGP",
     "https://gamejam.com/og-pass/",
-    "0x0000000000000000000000000000000000000022",
-    2000
+    "0x0000000000000000000000000000000000000022"
   );
   await ogPassContract.deployed();
   console.log(`${OG_PASS} has been deployed at: ${ogPassContract.address}`);
