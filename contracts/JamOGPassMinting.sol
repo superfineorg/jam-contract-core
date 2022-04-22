@@ -36,7 +36,8 @@ contract JamOGPassMinting is Ownable {
             msg.value >= mintingFee * quantity,
             "JamOGPassMinting: not enough fee to mint"
         );
-        jamOGPassContract.mintBulk(msg.sender, quantity);
+        for (uint256 i = 0; i < quantity; i++)
+            jamOGPassContract.mintTo(msg.sender);
         (bool success, ) = payable(msg.sender).call{
             value: msg.value - mintingFee * quantity
         }("");

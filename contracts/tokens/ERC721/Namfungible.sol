@@ -150,8 +150,8 @@ contract Namfungible is
         _safeMint(to, currentTokenId);
     }
 
-    function mintBulk(address to, uint256 quantity) external {
-        for (uint256 i = 0; i < quantity; i++) mintTo(to);
+    function mintBulk(address[] memory recipients) external {
+        for (uint256 i = 0; i < recipients.length; i++) mintTo(recipients[i]);
     }
 
     function pause() public virtual {
