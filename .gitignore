@@ -45,3 +45,6 @@ cache
 
 # Mac
 .DS_Store
+
+# ABIs and BINs
+compile
