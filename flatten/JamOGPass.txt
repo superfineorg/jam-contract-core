@@ -2733,7 +2733,7 @@ contract JamOGPass is
         override(ERC721, ERC721Tradable)
         returns (string memory)
     {
-        require(_exists(tokenId), "JamNFT721: token does not exist");
+        require(_exists(tokenId), "JamOGPass: token does not exist");
         return
             string(
                 abi.encodePacked(
@@ -2752,7 +2752,7 @@ contract JamOGPass is
     {
         require(
             index < ERC721.balanceOf(owner),
-            "JamNFT721: owner index out of bounds"
+            "JamOGPass: owner index out of bounds"
         );
         return _ownedTokens[owner][index];
     }
@@ -2762,7 +2762,7 @@ contract JamOGPass is
     }
 
     function tokenByIndex(uint256 index) public view virtual returns (uint256) {
-        require(index < totalSupply(), "JamNFT721: global index out of bounds");
+        require(index < totalSupply(), "JamOGPass: global index out of bounds");
         return _allTokens[index];
     }
 
@@ -2790,7 +2790,7 @@ contract JamOGPass is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamNFT721: must have minter role to mint"
+            "JamOGPass: must have minter role to mint"
         );
         _safeMint(to, tokenId);
     }
@@ -2798,7 +2798,7 @@ contract JamOGPass is
     function mintTo(address to) public override {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamNFT721: must have minter role to mint"
+            "JamOGPass: must have minter role to mint"
         );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
@@ -2806,14 +2806,14 @@ contract JamOGPass is
         _safeMint(to, currentTokenId);
     }
 
-    function mintBulk(address to, uint256 quantity) external {
-        for (uint256 i = 0; i < quantity; i++) mintTo(to);
+    function mintBulk(address[] memory recipients) external {
+        for (uint256 i = 0; i < recipients.length; i++) mintTo(recipients[i]);
     }
 
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamNFT721: must have pauser role to pause"
+            "JamOGPass: must have pauser role to pause"
         );
         _pause();
     }
@@ -2821,7 +2821,7 @@ contract JamOGPass is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamNFT721: must have pauser role to unpause"
+            "JamOGPass: must have pauser role to unpause"
         );
         _unpause();
     }

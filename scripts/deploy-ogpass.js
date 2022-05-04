@@ -13,7 +13,7 @@ async function deploy() {
   console.log("Deployer:", deployer.address);
   console.log("Balance:", (await deployer.getBalance()).toString());
 
-  // Deploy OGPass
+  // Deploy OGPass contract
   console.log(`Deploying ${OG_PASS} with parameters: "OGPass NFT" "OGP" "https://gamejam.com/og-pass/" "0x0000000000000000000000000000000000000022"`);
   let ogPassFactory = await hre.ethers.getContractFactory(OG_PASS);
   let ogPassContract = await ogPassFactory.deploy(
@@ -25,7 +25,7 @@ async function deploy() {
   await ogPassContract.deployed();
   console.log(`${OG_PASS} has been deployed at: ${ogPassContract.address}`);
 
-  // Deploy SuperHappyFrens
+  // Deploy SuperHappyFrens contract
   console.log(`Deploying ${SHF} with parameters: "Super Happy Frens NFT" "SHF" "https://gamejam.com/super-happy-frens/" "0x0000000000000000000000000000000000000034" "2000"`);
   let shfFactory = await hre.ethers.getContractFactory(SHF);
   let shfContract = await shfFactory.deploy(
@@ -38,15 +38,17 @@ async function deploy() {
   await shfContract.deployed();
   console.log(`${SHF} has been deployed at ${shfContract.address}`);
 
-  // Deploy Minting
-  console.log(`Deploying ${MINTING} with parameters: "${ogPassContract.address}" "${shfContract.address}" "1234" "3333" "2222"`);
+  // Deploy Minting contract
+  console.log(`Deploying ${MINTING} with parameters: "${ogPassContract.address}" "${shfContract.address}" "1234000000000000000000" "3333000000000000000000" "2222000000000000000000", "100", "100"`);
   let mintingFactory = await hre.ethers.getContractFactory(MINTING);
   let mintingContract = await mintingFactory.deploy(
     ogPassContract.address,
     shfContract.address,
-    1234,
-    3333,
-    2222
+    "1234000000000000000000",
+    "3333000000000000000000",
+    "2222000000000000000000",
+    100,
+    100
   );
   await mintingContract.deployed();
   console.log(`${MINTING} has been deployed at ${mintingContract.address}`);

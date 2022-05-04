@@ -40,7 +40,9 @@ before("Deploy contracts", async () => {
     this.shfContract.address,
     1234,
     3333,
-    2222
+    2222,
+    10,
+    10
   );
   await this.mintingContract.deployed();
 });
@@ -67,12 +69,12 @@ describe("Test OGPass and Super Happy Frens", () => {
       this.mintingFactory
         .connect(this.user)
         .attach(this.mintingContract.address)
-        .buySuperHappyFrens(2, { value: 6600 })
+        .purchaseSuperHappyFrens(2, { value: 6600 })
     ).to.be.revertedWith("JamOGPassMinting: not enough money");
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
-      .buySuperHappyFrens(2, { value: 7000 });
+      .purchaseSuperHappyFrens(2, { value: 7000 });
     for (let i = 0; i <= 1; i++) {
       let currentOwner = await this.shfContract.ownerOf(i);
       expect(currentOwner).to.equal(this.user.address);
@@ -98,7 +100,7 @@ describe("Test OGPass and Super Happy Frens", () => {
     await this.mintingFactory
       .connect(this.user)
       .attach(this.mintingContract.address)
-      .buySuperHappyFrens(3, { value: 7000 });
+      .purchaseSuperHappyFrens(3, { value: 7000 });
     for (let i = 2; i <= 4; i++) {
       let currentOwner = await this.shfContract.ownerOf(i);
       expect(currentOwner).to.equal(this.user.address);
@@ -116,6 +118,57 @@ describe("Test OGPass and Super Happy Frens", () => {
       expect(ownedTokens[i].tokenId.toString()).to.equal(i.toString());
       expect(ownedTokens[i].tokenURI).to.equal(`https://gamejam.com/og-pass/${i}.json`);
     }
+  });
+
+  it("Set the new values", async () => {
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .setMintFee(9999);
+    await expect(
+      this.mintingFactory
+        .connect(this.deployer)
+        .attach(this.mintingContract.address)
+        .setSuperHappyFrensPrice(1111)
+    ).to.be.revertedWith("JamOGPassMinting: normal price must be greater than discount price");
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .setSuperHappyFrensPrice(4444);
+    await expect(
+      this.mintingFactory
+        .connect(this.deployer)
+        .attach(this.mintingContract.address)
+        .setSuperHappyFrensDiscountPrice(5555)
+    ).to.be.revertedWith("JamOGPassMinting: normal price must be greater than discount price");
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .setSuperHappyFrensDiscountPrice(3333);
+    await expect(
+      this.mintingFactory
+        .connect(this.deployer)
+        .attach(this.mintingContract.address)
+        .setMintLimit(0)
+    ).to.be.revertedWith("JamOGPassMinting: mint limit must be greater than 0");
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .setMintLimit(20);
+    await this.mintingFactory
+      .connect(this.deployer)
+      .attach(this.mintingContract.address)
+      .setPurchaseLimit(18);
+    let mintFee = await this.mintingContract.mintFee();
+    let price = await this.mintingContract.jamSuperHappyFrensPrice();
+    let discountPrice = await this.mintingContract.jamSuperHappyFrensDiscountPrice();
+    let mintLimit = await this.mintingContract.mintLimit();
+    let purchaseLimit = await this.mintingContract.purchaseLimit();
+    expect(mintFee.toString()).to.equal("9999");
+    expect(price.toString()).to.equal("4444");
+    expect(discountPrice.toString()).to.equal("3333");
+    expect(mintLimit.toString()).to.equal("20");
+    expect(purchaseLimit.toString()).to.equal("18");
   });
 
   it("Reclaim money", async () => {
