@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 
-contract JamToken is AccessControl, ERC20Capped, ERC20Burnable, ERC20Pausable {
+contract MMDToken is AccessControl, ERC20Capped, ERC20Burnable, ERC20Pausable {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
 
@@ -24,7 +24,7 @@ contract JamToken is AccessControl, ERC20Capped, ERC20Burnable, ERC20Pausable {
     function mint(address recipient, uint256 amount) external {
         require(
             hasRole(MINTER_ROLE, msg.sender),
-            "JamToken: caller is not minter"
+            "MMDToken: caller is not minter"
         );
         _mint(recipient, amount);
     }
@@ -32,7 +32,7 @@ contract JamToken is AccessControl, ERC20Capped, ERC20Burnable, ERC20Pausable {
     function pause() public {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamToken: must have pauser role to pause"
+            "MMDToken: must have pauser role to pause"
         );
         _pause();
     }
@@ -40,7 +40,7 @@ contract JamToken is AccessControl, ERC20Capped, ERC20Burnable, ERC20Pausable {
     function unpause() public {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamToken: must have pauser role to unpause"
+            "MMDToken: must have pauser role to unpause"
         );
         _unpause();
     }
