@@ -1,15 +1,18 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"time"
 
 	ethereum "github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/accounts/abi/bind"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/ethclient"
 
@@ -17,12 +20,13 @@ import (
 )
 
 const (
-	// Keccak256("Approval(address,address,uint256)")
-	ApprovalEventSelector     string = "8c5be1e5ebec7d5bd14f71427d1e84f3dd0314c0f7b2291e5b200ac8c7c3b925"
-	NFTContractAddress        string = "Ab18DA4F945E61BECF4b55aA8ec960493EbB4D94"
-	NFTBurningContractAddress string = "8546fAA4F858cAF34Fd605865B6Bbf3A813D960b"
-	RinkebyProvider           string = "https://crypto.gamejam.com/testnet/rpc/"
-	DeploymentBlock           int    = 2346062
+	Erc721ApprovalEvent       string = "Approval(address,address,uint256)"
+	Erc1155ApprovalEvent      string = "ApprovalForAll(address,address,bool)"
+	Erc721ContractAddress     string = "Bb0C52212D96706d17F7231B30EF34AA086f2275"
+	Erc1155ContractAddress    string = "4Cf7962B32754C4D7B4976A615a7f57dAd419054"
+	NFTBurningContractAddress string = "44077399AEaD781Db0728b99c744F3b905908Bde"
+	RPCProvider               string = "https://crypto.gamejam.com/testnet/rpc/"
+	DeploymentBlock           int    = 2641604
 	PrivateKey                string = "289972fdba8eafe076b5751454a00b43505cdec1b3e97618bba5636cd44343ab"
 )
 
@@ -37,13 +41,13 @@ func buildQuery(contract common.Address, eventSelector common.Hash, startBlock *
 }
 
 func main() {
-	c, _ := ethclient.Dial(RinkebyProvider)
+	c, _ := ethclient.Dial(RPCProvider)
 	currentBlock := DeploymentBlock
 
 	// Initialize general information
-	caller, err := contracts.NewGameNFTCaller(common.HexToAddress(NFTContractAddress), c)
+	caller721, err := contracts.NewGameNFT721Caller(common.HexToAddress(Erc721ContractAddress), c)
 	if err != nil {
-		fmt.Println("Failed to initialize the NFT contract")
+		fmt.Println("Failed to initialize the NFT721 contract")
 		return
 	}
 	burningContract, err := contracts.NewGameNFTBurning(common.HexToAddress(NFTBurningContractAddress), c)
@@ -68,44 +72,106 @@ func main() {
 			fmt.Println("Failed to get latest block")
 		} else if currentBlock <= int(latestBlock) {
 			fmt.Printf("Scanning from block %d to block %d...\n", currentBlock, latestBlock)
-			logs, err := c.FilterLogs(context.Background(), buildQuery(
-				common.HexToAddress(NFTContractAddress),
-				common.HexToHash(ApprovalEventSelector),
-				big.NewInt(int64(currentBlock)),
-				big.NewInt(int64(latestBlock)),
-			))
-			if err != nil {
-				fmt.Print("Unable to filter logs", err)
-			} else {
-				for i := 0; i < len(logs); i++ {
-					// Get information from the event
-					approved := common.BytesToAddress(logs[i].Topics[2].Bytes()).String()
-					tokenId, success := new(big.Int).SetString(hex.EncodeToString(logs[i].Topics[3].Bytes()), 16)
-					if !success {
-						fmt.Println("Error when parsing approved tokenId")
-						break
-					}
-					fmt.Printf("Token #%d has been approved to %s\n", tokenId.Int64(), approved)
-
-					// Burn the approved NFTs
-					if approved[2:] == NFTBurningContractAddress {
-						_, err = caller.OwnerOf(&bind.CallOpts{}, tokenId)
-						if err != nil {
-							fmt.Println("NFT does not exist or burned already")
-						} else {
-							fmt.Printf("Burning the token #%d...\n", tokenId)
-							_, err = burningContract.BurnIntoGames(auth, common.HexToAddress(NFTContractAddress), tokenId)
-							if err != nil {
-								fmt.Printf("Failed to burn the token #%d\n", tokenId.Int64())
-							} else {
-								fmt.Printf("Token #%d has been burned successfully!\n", tokenId.Int64())
-							}
-						}
-					}
-				}
-				currentBlock = int(latestBlock) + 1
-			}
+			scanErc721ApprovalEvents(
+				c,
+				int64(currentBlock),
+				int64(latestBlock),
+				caller721,
+				auth,
+				burningContract,
+			)
+			scanErc1155ApprovalEvents(
+				c,
+				int64(currentBlock),
+				int64(latestBlock),
+				auth,
+				burningContract,
+			)
+			currentBlock = int(latestBlock) + 1
 		}
 		time.Sleep(10 * time.Second)
+	}
+}
+
+func scanErc721ApprovalEvents(
+	c *ethclient.Client,
+	fromBlock int64,
+	toBlock int64,
+	caller721 *contracts.GameNFT721Caller,
+	auth *bind.TransactOpts,
+	burningContract *contracts.GameNFTBurning,
+) {
+	var logs []types.Log
+	var err error
+	for ok := true; ok; ok = (err != nil) {
+		logs, err = c.FilterLogs(context.Background(), buildQuery(
+			common.HexToAddress(Erc721ContractAddress),
+			common.HexToHash(hex.EncodeToString(crypto.Keccak256([]byte(Erc721ApprovalEvent)))),
+			big.NewInt(fromBlock),
+			big.NewInt(toBlock),
+		))
+	}
+	for i := 0; i < len(logs); i++ {
+		// Get information from the event
+		approved := common.BytesToAddress(logs[i].Topics[2].Bytes()).String()
+		tokenId, success := new(big.Int).SetString(hex.EncodeToString(logs[i].Topics[3].Bytes()), 16)
+		if !success {
+			fmt.Println("Error when parsing approved tokenId")
+			break
+		}
+		fmt.Printf("Token #%d has been approved to %s\n", tokenId.Int64(), approved)
+
+		// Burn the approved NFTs
+		if strings.TrimPrefix(approved, "0x") == NFTBurningContractAddress {
+			_, err = caller721.OwnerOf(&bind.CallOpts{}, tokenId)
+			if err != nil {
+				fmt.Println("NFT does not exist or burned already")
+			} else {
+				fmt.Printf("Burning the token #%d...\n", tokenId)
+				_, err = burningContract.BurnErc721IntoGames(auth, []common.Address{common.HexToAddress(Erc721ContractAddress)}, []*big.Int{tokenId})
+				if err != nil {
+					fmt.Printf("Failed to burn the token #%d\n", tokenId.Int64())
+				} else {
+					fmt.Printf("Token #%d has been burned successfully!\n", tokenId.Int64())
+				}
+			}
+		}
+	}
+}
+
+func scanErc1155ApprovalEvents(
+	c *ethclient.Client,
+	fromBlock int64,
+	toBlock int64,
+	auth *bind.TransactOpts,
+	burningContract *contracts.GameNFTBurning,
+) {
+	var logs []types.Log
+	var err error
+	for ok := true; ok; ok = (err != nil) {
+		logs, err = c.FilterLogs(context.Background(), buildQuery(
+			common.HexToAddress(Erc1155ContractAddress),
+			common.HexToHash(hex.EncodeToString(crypto.Keccak256([]byte(Erc1155ApprovalEvent)))),
+			big.NewInt(fromBlock),
+			big.NewInt(toBlock),
+		))
+	}
+	for i := 0; i < len(logs); i++ {
+		owner := common.BytesToAddress(logs[i].Topics[1].Bytes()).String()
+		operator := common.BytesToAddress(logs[i].Topics[2].Bytes()).String()
+		if !bytes.Equal(logs[i].Data, make([]byte, 32)) {
+			fmt.Printf("%s has approved all ERC1155 NFTs to %s\n", owner, operator)
+
+			// Burn all approved NFTs
+			if strings.TrimPrefix(operator, "0x") == NFTBurningContractAddress {
+				fmt.Printf("Burning all ERC1155 tokens of %s...\n", owner)
+				_, err = burningContract.BurnErc1155IntoGames(auth, []common.Address{common.HexToAddress(owner)}, []common.Address{common.HexToAddress(Erc1155ContractAddress)})
+				if err != nil {
+					fmt.Printf("Failed to burn ERC1155 NFTs of %s\n", owner)
+				} else {
+					fmt.Printf("All ERC1155 NFTs of %s are burned successfully!\n", owner)
+				}
+			}
+		}
 	}
 }

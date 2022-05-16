@@ -1,0 +1,18 @@
+{
+	"tokenName": "JamNFT",
+	"tokenSymbol": "JNFT",
+	"tokenDecimals": 18,
+	"initialSupply": null,
+	"capacity": "3000000000",
+	"supplyType": "capped",
+	"accessType": "roleBased",
+	"verifiedSourceCode": true,
+	"removeCopyright": false,
+	"burnable": true,
+	"mintable": true,
+	"enumerable": true,
+	"tokenType": "erc20",
+	"network": "2077",
+	"baseUri": "https://gamejam.com/nft/",
+	"flatten": false
+}

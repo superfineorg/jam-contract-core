@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 
-contract GameNFT is ERC721Enumerable, ERC721Burnable, AccessControl {
+contract GameNFT721 is ERC721Enumerable, ERC721Burnable, AccessControl {
     using Counters for Counters.Counter;
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
@@ -41,7 +41,7 @@ contract GameNFT is ERC721Enumerable, ERC721Burnable, AccessControl {
         override
         returns (string memory)
     {
-        require(_exists(tokenId), "GameNFT: token does not exist");
+        require(_exists(tokenId), "GameNFT721: token does not exist");
         return
             string(
                 abi.encodePacked(
@@ -55,7 +55,7 @@ contract GameNFT is ERC721Enumerable, ERC721Burnable, AccessControl {
     function setBaseTokenURI(string memory baseTokenURI_) external {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "GameNFT: must have admin role to set"
+            "GameNFT721: must have admin role to set"
         );
         baseTokenURI = baseTokenURI_;
     }
@@ -63,7 +63,7 @@ contract GameNFT is ERC721Enumerable, ERC721Burnable, AccessControl {
     function mint(address to) external {
         require(
             hasRole(MINTER_ROLE, msg.sender),
-            "GameNFT: must have minter role to mint"
+            "GameNFT721: must have minter role to mint"
         );
         _safeMint(to, _currentId.current());
         _currentId.increment();
