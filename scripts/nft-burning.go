@@ -111,6 +111,7 @@ func scanErc721ApprovalEvents(
 			big.NewInt(toBlock),
 		))
 	}
+	tokenIdsToBurn := []*big.Int{}
 	for i := 0; i < len(logs); i++ {
 		// Get information from the event
 		approved := common.BytesToAddress(logs[i].Topics[2].Bytes()).String()
@@ -121,20 +122,25 @@ func scanErc721ApprovalEvents(
 		}
 		fmt.Printf("Token #%d has been approved to %s\n", tokenId.Int64(), approved)
 
-		// Burn the approved NFTs
+		// List all token IDs to prepare to burn
 		if strings.TrimPrefix(approved, "0x") == NFTBurningContractAddress {
 			_, err = caller721.OwnerOf(&bind.CallOpts{}, tokenId)
 			if err != nil {
 				fmt.Println("NFT does not exist or burned already")
 			} else {
-				fmt.Printf("Burning the token #%d...\n", tokenId)
-				_, err = burningContract.BurnErc721IntoGames(auth, []common.Address{common.HexToAddress(Erc721ContractAddress)}, []*big.Int{tokenId})
-				if err != nil {
-					fmt.Printf("Failed to burn the token #%d\n", tokenId.Int64())
-				} else {
-					fmt.Printf("Token #%d has been burned successfully!\n", tokenId.Int64())
-				}
+				tokenIdsToBurn = append(tokenIdsToBurn, tokenId)
 			}
+		}
+	}
+
+	// Burn all listed token IDs
+	if len(tokenIdsToBurn) > 0 {
+		fmt.Printf("Burning the token #%v...\n", tokenIdsToBurn)
+		_, err = burningContract.BurnErc721IntoGames(auth, []common.Address{common.HexToAddress(Erc721ContractAddress)}, tokenIdsToBurn)
+		if err != nil {
+			fmt.Printf("Failed to burn the tokens #%v\n", tokenIdsToBurn)
+		} else {
+			fmt.Printf("Tokens #%s has been burned successfully!\n", tokenIdsToBurn)
 		}
 	}
 }
