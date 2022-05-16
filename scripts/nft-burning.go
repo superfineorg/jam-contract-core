@@ -50,6 +50,11 @@ func main() {
 		fmt.Println("Failed to initialize the NFT721 contract")
 		return
 	}
+	caller1155, err := contracts.NewGameNFT1155Caller(common.HexToAddress(Erc1155ContractAddress), c)
+	if err != nil {
+		fmt.Println("Failed to initialize the NFT1155 contract")
+		return
+	}
 	burningContract, err := contracts.NewGameNFTBurning(common.HexToAddress(NFTBurningContractAddress), c)
 	if err != nil {
 		fmt.Println("Failed to initialize the burning contract")
@@ -84,6 +89,7 @@ func main() {
 				c,
 				int64(currentBlock),
 				int64(latestBlock),
+				caller1155,
 				auth,
 				burningContract,
 			)
@@ -136,7 +142,11 @@ func scanErc721ApprovalEvents(
 	// Burn all listed token IDs
 	if len(tokenIdsToBurn) > 0 {
 		fmt.Printf("Burning the token #%v...\n", tokenIdsToBurn)
-		_, err = burningContract.BurnErc721IntoGames(auth, []common.Address{common.HexToAddress(Erc721ContractAddress)}, tokenIdsToBurn)
+		nftAddresses := []common.Address{}
+		for i := 0; i < len(tokenIdsToBurn); i++ {
+			nftAddresses = append(nftAddresses, common.HexToAddress(Erc721ContractAddress))
+		}
+		_, err = burningContract.BurnErc721IntoGames(auth, nftAddresses, tokenIdsToBurn)
 		if err != nil {
 			fmt.Printf("Failed to burn the tokens #%v\n", tokenIdsToBurn)
 		} else {
@@ -149,6 +159,7 @@ func scanErc1155ApprovalEvents(
 	c *ethclient.Client,
 	fromBlock int64,
 	toBlock int64,
+	caller1155 *contracts.GameNFT1155Caller,
 	auth *bind.TransactOpts,
 	burningContract *contracts.GameNFTBurning,
 ) {
@@ -162,22 +173,47 @@ func scanErc1155ApprovalEvents(
 			big.NewInt(toBlock),
 		))
 	}
+	ownersToBurnFrom := []common.Address{}
 	for i := 0; i < len(logs); i++ {
-		owner := common.BytesToAddress(logs[i].Topics[1].Bytes()).String()
+		// Get information from the event
+		owner := common.BytesToAddress(logs[i].Topics[1].Bytes())
 		operator := common.BytesToAddress(logs[i].Topics[2].Bytes()).String()
 		if !bytes.Equal(logs[i].Data, make([]byte, 32)) {
 			fmt.Printf("%s has approved all ERC1155 NFTs to %s\n", owner, operator)
 
-			// Burn all approved NFTs
+			// List all owners to prepare to burn from
 			if strings.TrimPrefix(operator, "0x") == NFTBurningContractAddress {
-				fmt.Printf("Burning all ERC1155 tokens of %s...\n", owner)
-				_, err = burningContract.BurnErc1155IntoGames(auth, []common.Address{common.HexToAddress(owner)}, []common.Address{common.HexToAddress(Erc1155ContractAddress)})
+				ownedNFTs, err := caller1155.GetAllOwnedTokens(&bind.CallOpts{}, owner)
 				if err != nil {
-					fmt.Printf("Failed to burn ERC1155 NFTs of %s\n", owner)
-				} else {
-					fmt.Printf("All ERC1155 NFTs of %s are burned successfully!\n", owner)
+					ownersToBurnFrom = append(ownersToBurnFrom, owner)
+					continue
+				}
+				shouldBurn := false
+				for _, nft := range ownedNFTs {
+					if nft.Quantity.Cmp(big.NewInt(0)) > 0 {
+						shouldBurn = true
+						break
+					}
+				}
+				if shouldBurn {
+					ownersToBurnFrom = append(ownersToBurnFrom, owner)
 				}
 			}
+		}
+	}
+
+	// Burn all NFTs of these owners
+	if len(ownersToBurnFrom) > 0 {
+		fmt.Printf("Burning all ERC1155 tokens of %v...\n", ownersToBurnFrom)
+		nftAddresses := []common.Address{}
+		for i := 0; i < len(ownersToBurnFrom); i++ {
+			nftAddresses = append(nftAddresses, common.HexToAddress(Erc1155ContractAddress))
+		}
+		_, err = burningContract.BurnErc1155IntoGames(auth, ownersToBurnFrom, nftAddresses)
+		if err != nil {
+			fmt.Printf("Failed to burn ERC1155 NFTs of %v\n", ownersToBurnFrom)
+		} else {
+			fmt.Printf("All ERC1155 NFTs of %v are burned successfully!\n", ownersToBurnFrom)
 		}
 	}
 }
