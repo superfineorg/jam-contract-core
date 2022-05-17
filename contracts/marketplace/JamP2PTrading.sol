@@ -58,6 +58,14 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         view
         returns (Offer[] memory)
     {
+        address owner_ = IERC721(nftAddress).ownerOf(tokenId);
+        if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_))
+            if (
+                !JamMarketplaceHelpers(owner_).isAuctionCancelable(
+                    nftAddress,
+                    tokenId
+                )
+            ) return new Offer[](0);
         return _offersFor[nftAddress][tokenId];
     }
 

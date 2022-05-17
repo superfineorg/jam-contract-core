@@ -63,6 +63,7 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
      */
     function isAuctionCancelable(address nftAddress, uint256 tokenId)
         external
+        view
         virtual
         returns (bool)
     {
