@@ -128,10 +128,15 @@ describe("Test burning contract", () => {
     await this.nftBurningFactory
       .connect(this.burningOperator)
       .attach(this.nftBurningContract.address)
-      .burnErc1155IntoGames([this.user.address], [this.nft1155Contract.address]);
+      .burnErc1155IntoGames(
+        [this.user.address],
+        [this.nft1155Contract.address],
+        [[0, 1]],
+        [[9, 25]]
+      );
     let remainingQuantity0 = await this.nft1155Contract.balanceOf(this.user.address, 0);
     let remainingQuantity1 = await this.nft1155Contract.balanceOf(this.user.address, 1);
-    expect(remainingQuantity0.toString()).to.equal("0");
-    expect(remainingQuantity1.toString()).to.equal("0");
+    expect(remainingQuantity0.toString()).to.equal("3");
+    expect(remainingQuantity1.toString()).to.equal("5");
   });
 });

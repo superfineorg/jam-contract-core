@@ -74,10 +74,14 @@ contract GameNFTBurning is Ownable {
 
     function burnErc1155IntoGames(
         address[] memory owners,
-        address[] memory nftAddresses
+        address[] memory nftAddresses,
+        uint256[][] memory tokenIds,
+        uint256[][] memory quantities
     ) external onlyOperators {
         require(
-            owners.length == nftAddresses.length,
+            owners.length == nftAddresses.length &&
+                owners.length == tokenIds.length &&
+                owners.length == quantities.length,
             "GameNFTBurning: lengths mismatch"
         );
         for (uint256 i = 0; i < owners.length; i++) {
@@ -87,21 +91,16 @@ contract GameNFTBurning is Ownable {
                     type(IERC1155).interfaceId
                 );
             require(success, "GameNFTBurning: invalid ERC1155 address");
-            GameNFT1155 nftContract = GameNFT1155(nftAddresses[i]);
-            GameNFT1155.TokenInfo[] memory ownedTokens = nftContract
-                .getAllOwnedTokens(owners[i]);
-            uint256[] memory tokenIds = new uint256[](ownedTokens.length);
-            uint256[] memory quantities = new uint256[](ownedTokens.length);
-            for (uint256 j = 0; j < ownedTokens.length; j++) {
-                tokenIds[j] = ownedTokens[j].tokenId;
-                quantities[j] = ownedTokens[j].quantity;
-            }
-            nftContract.burnBatch(owners[i], tokenIds, quantities);
+            GameNFT1155(nftAddresses[i]).burnBatch(
+                owners[i],
+                tokenIds[i],
+                quantities[i]
+            );
             emit Erc1155BurnedIntoGames(
                 owners[i],
                 nftAddresses[i],
-                tokenIds,
-                quantities
+                tokenIds[i],
+                quantities[i]
             );
         }
     }
