@@ -4,10 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./JamMarketplaceHelpers.sol";
 
-contract JamMarketplace is JamMarketplaceHelpers, ReentrancyGuard {
+contract JamMarketplace is JamMarketplaceHelpers {
     using SafeMath for uint256;
 
     // Represents an auction on an NFT

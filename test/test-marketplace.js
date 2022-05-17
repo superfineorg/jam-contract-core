@@ -423,13 +423,13 @@ describe("Test JamTraditionalAuction", () => {
   //     this.jamTraditionalAuctionFactory
   //       .connect(this.buyer2)
   //       .attach(this.jamTraditionalAuctionContract.address)
-  //       .claimAsset(this.erc721Contract.address, 4)
+  //       .finalizeAuction(this.erc721Contract.address, 4)
   //   ).to.be.revertedWith("JamTraditionalAuction: auction not ends yet");
   //   await sleep(20000);
   //   await this.jamTraditionalAuctionFactory
   //     .connect(this.buyer2)
   //     .attach(this.jamTraditionalAuctionContract.address)
-  //     .claimAsset(this.erc721Contract.address, 4);
+  //     .finalizeAuction(this.erc721Contract.address, 4);
   //   let currentOwner = await this.erc721Contract.ownerOf(4);
   //   expect(currentOwner).to.equal(this.buyer2.address);
   // });
@@ -647,9 +647,7 @@ describe("Test JamP2PTrading", () => {
       .connect(this.seller)
       .attach(this.jamP2PTradingContract.address)
       .acceptOffer(this.buyer1.address, this.erc721Contract.address, 8);
+    let currentOwner = await this.erc721Contract.ownerOf(8);
+    expect(currentOwner).to.equal(this.buyer1.address);
   });
 });
-
-let sleep = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};

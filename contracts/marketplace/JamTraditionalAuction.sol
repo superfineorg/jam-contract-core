@@ -3,10 +3,9 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./JamMarketplaceHelpers.sol";
 
-contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
+contract JamTraditionalAuction is JamMarketplaceHelpers {
     // The information of an auction
     struct Auction {
         address seller;
@@ -333,11 +332,11 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
     }
 
     /**
-     * @dev The winner claims the NFT when the auction expires.
+     * @dev Finalize the auction, return the NFT to the winner and return money to the seller.
      * @param nftAddress - address of a deployed contract implementing the Nonfungible Interface.
      * @param tokenId - ID of token to bid on.
      */
-    function claimAsset(address nftAddress, uint256 tokenId)
+    function finalizeAuction(address nftAddress, uint256 tokenId)
         external
         whenNotPaused
         isOnAuction(nftAddress, tokenId)
@@ -348,13 +347,13 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
             "JamTraditionalAuction: auction not ends yet"
         );
         address winner = auction.highestBidder;
-        require(
-            msg.sender == winner,
-            "JamTraditionalAuction: sender is not winner"
-        );
         address seller = auction.seller;
         address currency = auction.currency;
         uint256 price = auction.highestBidAmount;
+        require(
+            msg.sender == winner || msg.sender == seller,
+            "JamTraditionalAuction: sender is not winner nor seller"
+        );
 
         //  Auction is successful, remove its info
         delete _auctions[nftAddress][tokenId];
@@ -394,15 +393,9 @@ contract JamTraditionalAuction is JamMarketplaceHelpers, ReentrancyGuard {
         }
 
         // Give assets to winner
-        IERC721(nftAddress).transferFrom(address(this), msg.sender, tokenId);
+        IERC721(nftAddress).transferFrom(address(this), winner, tokenId);
 
-        emit AuctionSuccessful(
-            nftAddress,
-            tokenId,
-            currency,
-            price,
-            msg.sender
-        );
+        emit AuctionSuccessful(nftAddress, tokenId, currency, price, winner);
     }
 
     /** @dev Cancels an auction unconditionally. */

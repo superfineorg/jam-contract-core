@@ -7,9 +7,10 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./JamMarketplaceHub.sol";
 
-abstract contract JamMarketplaceHelpers is Ownable, Pausable {
+abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
     // The ID of this marketplace in Gamejam's marketplace system
     bytes32 public marketplaceId;
 

@@ -3,10 +3,9 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./JamMarketplaceHelpers.sol";
 
-contract JamClockAuction is JamMarketplaceHelpers, ReentrancyGuard {
+contract JamClockAuction is JamMarketplaceHelpers {
     // The information of an auction
     struct Auction {
         address seller;
