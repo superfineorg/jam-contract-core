@@ -272,32 +272,8 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         IERC721(nftAddress).transferFrom(owner_, offeror, tokenId);
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
-        if (offer.amount > 0) {
-            uint256 auctioneerCut = (offer.amount * ownerCut) / 10000;
-            uint256 sellerProceeds = offer.amount - auctioneerCut;
-            if (_supportIERC2981(nftAddress)) {
-                (address recipient, uint256 amount) = IERC2981(nftAddress)
-                    .royaltyInfo(tokenId, auctioneerCut);
-                require(
-                    amount < auctioneerCut,
-                    "JamTraditionalAuction: royalty amount must be less than auctioneer cut"
-                );
-                _totalRoyaltyCut[offer.currency] += amount;
-                _royaltyCuts[recipient][offer.currency] += amount;
-            }
-            if (offer.currency == address(0)) {
-                (bool success, ) = payable(msg.sender).call{
-                    value: sellerProceeds
-                }("");
-                require(success, "JamP2PTrading: transfer proceeds failed");
-            } else {
-                bool success = IERC20(offer.currency).transfer(
-                    msg.sender,
-                    sellerProceeds
-                );
-                require(success, "JamP2PTrading: transfer proceeds failed");
-            }
-        }
+        if (offer.amount > 0)
+            _handleMoney(nftAddress, msg.sender, offer.currency, offer.amount);
 
         emit OfferAccepted(
             offeror,

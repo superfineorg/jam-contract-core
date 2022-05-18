@@ -5,12 +5,23 @@ pragma solidity ^0.8.6;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "@openzeppelin/contracts/interfaces/IERC2981.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./JamMarketplaceHub.sol";
 
 abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
+    /**
+     * @dev Royalty fee is cut from the sale price of an NFT
+     * @param recipient Who will receive the royalty fee
+     * @param percentage The percentage that sale price will be cut into royalty fee
+     * @notice The percentage values 0 - 10000 map to 0% - 100%
+     * @notice `percentage` + `ownerCut` (defined in marketplace contracts) must be less than 100%
+     */
+    struct RoyaltyFee {
+        address recipient;
+        uint256 percentage;
+    }
+
     // The ID of this marketplace in Gamejam's marketplace system
     bytes32 public marketplaceId;
 
@@ -24,13 +35,16 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
     address internal _marketplaceHub;
 
     // Mapping from (royalty recipient, erc20 currency) to the amount of royalty cut he receives
-    mapping(address => mapping(address => uint256)) internal _royaltyCuts;
+    mapping(address => mapping(address => uint256)) private _royaltyCuts;
 
     // The total amount of royalty cut which cannot be reclaimed by the owner of the contract
-    mapping(address => uint256) internal _totalRoyaltyCut;
+    mapping(address => uint256) private _totalRoyaltyCut;
 
     // Mapping from (royalty recipient, erc20 currency) to the last moment he withdraws the royalty cut
     mapping(address => mapping(address => uint256)) private _lastWithdraws;
+
+    // Mapping from the NFT contract address to the royalty information of that NFT contract
+    mapping(address => RoyaltyFee) private _royaltyInfoOf;
 
     /**
      * @dev Constructor that rejects incoming Ether
@@ -70,6 +84,15 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
         return true;
     }
 
+    function getRoyaltyInfo(address nftAddress)
+        external
+        view
+        returns (address, uint256)
+    {
+        RoyaltyFee memory info = _royaltyInfoOf[nftAddress];
+        return (info.recipient, info.percentage);
+    }
+
     function getReceivedRoyalty(address user, address[] memory currencies)
         external
         view
@@ -86,6 +109,26 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
             uint256 lastWithdraw = _lastWithdraws[user][currencies[i]];
             lastWithdraws[i] = lastWithdraw;
         }
+    }
+
+    function setRoyaltyFee(
+        address nftAddress,
+        address recipient,
+        uint256 percentage
+    ) external {
+        require(
+            msg.sender == _marketplaceHub,
+            "JamMarketplaceHelpers: caller is not marketplace hub"
+        );
+        require(
+            recipient != address(0),
+            "JamMarketplaceHelpers: invalid recipient"
+        );
+        require(
+            percentage + ownerCut < 10000,
+            "JamMarketplaceHelpers: percentage is too high"
+        );
+        _royaltyInfoOf[nftAddress] = RoyaltyFee(recipient, percentage);
     }
 
     function registerWithHub() external onlyOwner {
@@ -146,14 +189,28 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function _supportIERC2981(address nftAddress) internal view returns (bool) {
-        bool success;
-        success = ERC165Checker.supportsERC165(nftAddress);
-        if (success) {
-            success = IERC165(nftAddress).supportsInterface(
-                type(IERC2981).interfaceId
-            );
+    function _handleMoney(
+        address nftAddress,
+        address seller,
+        address currency,
+        uint256 salePrice
+    ) internal {
+        RoyaltyFee memory royaltyInfo = _royaltyInfoOf[nftAddress];
+        uint256 auctioneerCut = (salePrice * ownerCut) / 10000;
+        uint256 royaltyFee = (salePrice * royaltyInfo.percentage) / 10000;
+        require(
+            auctioneerCut + royaltyFee < salePrice,
+            "JamMarketplaceHelpers: total fees must be less than sale price"
+        );
+        _totalRoyaltyCut[currency] += royaltyFee;
+        _royaltyCuts[royaltyInfo.recipient][currency] += royaltyFee;
+        uint256 sellerProceeds = salePrice - auctioneerCut - royaltyFee;
+        if (currency == address(0)) {
+            (bool success, ) = payable(seller).call{value: sellerProceeds}("");
+            require(success, "JamMarketplaceHelpers: transfer proceeds failed");
+        } else {
+            bool success = IERC20(currency).transfer(seller, sellerProceeds);
+            require(success, "JamMarketplaceHelpers: transfer proceeds failed");
         }
-        return success;
     }
 }

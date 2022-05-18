@@ -359,38 +359,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         delete _auctions[nftAddress][tokenId];
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
-        if (price > 0) {
-            uint256 auctioneerCut = (price * ownerCut) / 10000;
-            uint256 sellerProceeds = price - auctioneerCut;
-            if (_supportIERC2981(nftAddress)) {
-                (address recipient, uint256 amount) = IERC2981(nftAddress)
-                    .royaltyInfo(tokenId, auctioneerCut);
-                require(
-                    amount < auctioneerCut,
-                    "JamTraditionalAuction: royalty amount must be less than auctioneer cut"
-                );
-                _totalRoyaltyCut[currency] += amount;
-                _royaltyCuts[recipient][currency] += amount;
-            }
-            if (currency == address(0)) {
-                (bool success, ) = payable(seller).call{value: sellerProceeds}(
-                    ""
-                );
-                require(
-                    success,
-                    "JamTraditionalAuction: transfer proceeds failed"
-                );
-            } else {
-                bool success = IERC20(currency).transfer(
-                    seller,
-                    sellerProceeds
-                );
-                require(
-                    success,
-                    "JamTraditionalAuction: transfer proceeds failed"
-                );
-            }
-        }
+        if (price > 0) _handleMoney(nftAddress, seller, currency, price);
 
         // Give assets to winner
         IERC721(nftAddress).transferFrom(address(this), winner, tokenId);

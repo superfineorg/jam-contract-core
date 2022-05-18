@@ -71,15 +71,6 @@ contract JamMarketplace is JamMarketplaceHelpers {
         ownerCut = _ownerCut;
     }
 
-    function _computeCut(uint256 _price) internal view returns (uint256) {
-        // NOTE: We don't use SafeMath (or similar) in this function because
-        //  all of our entry functions carefully cap the maximum values for
-        //  currency (at 128-bits), and ownerCut <= 10000 (see the require()
-        //  statement in the ClockAuction constructor). The result of this
-        //  function is always guaranteed to be <= _price.
-        return (_price * ownerCut) / 10000;
-    }
-
     function _isOnAuction(Auction storage _auction)
         internal
         view
@@ -94,11 +85,6 @@ contract JamMarketplace is JamMarketplaceHelpers {
         returns (IERC721)
     {
         IERC721 candidateContract = IERC721(_nftAddress);
-        return candidateContract;
-    }
-
-    function _getERC2981(address _nftAddress) internal pure returns (IERC2981) {
-        IERC2981 candidateContract = IERC2981(_nftAddress);
         return candidateContract;
     }
 
@@ -288,7 +274,6 @@ contract JamMarketplace is JamMarketplaceHelpers {
         require(_isOnAuction(_auction), "JamMarketplace: not on auction");
         uint256 _price = _auction.price;
         require(_price <= _maxPrice, "JamMarketplace: item price is too high");
-        uint256 tokenId = _tokenId;
         address _erc20Address = _auction.erc20Address;
 
         IERC20 erc20Contract = _getERC20Contract(_erc20Address);
@@ -298,31 +283,14 @@ contract JamMarketplace is JamMarketplaceHelpers {
         require(_allowance >= _price, "JamMarketplace: not enough allowance");
 
         address _seller = _auction.seller;
-        uint256 _auctioneerCut = _computeCut(_price);
-        uint256 _sellerProceeds = _price - _auctioneerCut;
         bool success = erc20Contract.transferFrom(
             msg.sender,
             address(this),
             _price
         );
         require(success, "JamMarketplace: not enough balance");
-        erc20Contract.transfer(_seller, _sellerProceeds);
-        if (_supportIERC2981(_nftAddress)) {
-            IERC2981 royaltyContract = _getERC2981(_nftAddress);
-            (address firstOwner, uint256 amount) = royaltyContract.royaltyInfo(
-                tokenId,
-                _auctioneerCut
-            );
-            require(
-                amount < _auctioneerCut,
-                "JamMarketplace: royalty amount must be less than auctioneer cut"
-            );
-            _totalRoyaltyCut[_erc20Address] = _totalRoyaltyCut[_erc20Address]
-                .add(amount);
-            _royaltyCuts[firstOwner][_erc20Address] = _royaltyCuts[firstOwner][
-                _erc20Address
-            ].add(amount);
-        }
+        if (_price > 0)
+            _handleMoney(_nftAddress, _seller, _erc20Address, _price);
         _transfer(_nftAddress, msg.sender, _tokenId);
         _removeAuction(_nftAddress, _tokenId);
     }
@@ -349,29 +317,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
 
         _removeAuction(_nftAddress, _tokenId);
 
-        if (_price > 0) {
-            //  Calculate the auctioneer's cut.
-            // (NOTE: _computeCut() is guaranteed to return a
-            //  value <= price, so this subtraction can't go negative.)
-            uint256 _auctioneerCut = _computeCut(_price);
-            uint256 _sellerProceeds = _price - _auctioneerCut;
-            payable(_seller).transfer(_sellerProceeds);
-            if (_supportIERC2981(_nftAddress)) {
-                IERC2981 royaltyContract = _getERC2981(_nftAddress);
-                (address firstOwner, uint256 amount) = royaltyContract
-                    .royaltyInfo(_tokenId, _auctioneerCut);
-                require(
-                    amount < _auctioneerCut,
-                    "JamMarketplace: royalty amount must be less than auctioneer cut"
-                );
-                _totalRoyaltyCut[address(0)] = _totalRoyaltyCut[address(0)].add(
-                    amount
-                );
-                _royaltyCuts[firstOwner][address(0)] = _royaltyCuts[firstOwner][
-                    address(0)
-                ].add(amount);
-            }
-        }
+        if (_price > 0) _handleMoney(_nftAddress, _seller, address(0), _price);
 
         if (_bidAmount > _price) {
             // Calculate any excess funds included with the bid. If the excess

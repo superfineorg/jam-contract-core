@@ -431,14 +431,6 @@ contract JamClockAuction is JamMarketplaceHelpers {
     }
 
     /**
-     * @dev Computes owner's cut of a sale.
-     * @param price - Sale price of NFT.
-     */
-    function _computeCut(uint256 price) internal view returns (uint256) {
-        return (price * ownerCut) / 10000;
-    }
-
-    /**
      * @dev Computes the price and transfers winnings.
      * Does NOT transfer ownership of token.
      */
@@ -456,32 +448,7 @@ contract JamClockAuction is JamMarketplaceHelpers {
         _removeAuction(nftAddress, tokenId);
         if (currency != address(0))
             IERC20(currency).transferFrom(msg.sender, address(this), bidAmount);
-        if (price > 0) {
-            uint256 auctioneerCut = _computeCut(price);
-            uint256 sellerProceeds = price - auctioneerCut;
-            if (currency == address(0)) {
-                (bool success, ) = payable(seller).call{value: sellerProceeds}(
-                    ""
-                );
-                require(success, "JamClockAuction: transfer proceeds failed");
-            } else {
-                bool success = IERC20(currency).transfer(
-                    seller,
-                    sellerProceeds
-                );
-                require(success, "JamClockAuction: transfer proceeds failed");
-            }
-            if (_supportIERC2981(nftAddress)) {
-                (address recipient, uint256 amount) = IERC2981(nftAddress)
-                    .royaltyInfo(tokenId, auctioneerCut);
-                require(
-                    amount < auctioneerCut,
-                    "JamClockAuction: royalty amount must be less than auctioneer cut"
-                );
-                _totalRoyaltyCut[currency] += amount;
-                _royaltyCuts[recipient][currency] += amount;
-            }
-        }
+        if (price > 0) _handleMoney(nftAddress, seller, currency, price);
         if (bidAmount > price) {
             uint256 bidExcess = bidAmount - price;
             if (currency == address(0)) {
