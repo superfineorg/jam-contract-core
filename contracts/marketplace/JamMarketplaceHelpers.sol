@@ -63,8 +63,8 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
             "JamMarketplaceHelpers: invalid hub address"
         );
         require(
-            ownerCut_ <= 10000,
-            "JamMarketplaceHelpers: owner cut cannot exceed 100%"
+            ownerCut_ < 10000,
+            "JamMarketplaceHelpers: owner cut must be less than 100%"
         );
         _marketplaceHub = hubAddress;
         ownerCut = ownerCut_;
@@ -131,6 +131,14 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
         _royaltyInfoOf[nftAddress] = RoyaltyFee(recipient, percentage);
     }
 
+    function setOwnerCut(uint256 ownerCut_) public onlyOwner {
+        require(
+            ownerCut_ < 10000,
+            "JamMarketplaceHelpers: owner cut must be less than 100%"
+        );
+        ownerCut = ownerCut_;
+    }
+
     function registerWithHub() external onlyOwner {
         JamMarketplaceHub(_marketplaceHub).registerMarketplace(marketplaceId);
     }
@@ -189,7 +197,7 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function _handleMoney(
+    function _computeFeesAndPaySeller(
         address nftAddress,
         address seller,
         address currency,

@@ -273,7 +273,12 @@ contract JamP2PTrading is JamMarketplaceHelpers {
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
         if (offer.amount > 0)
-            _handleMoney(nftAddress, msg.sender, offer.currency, offer.amount);
+            _computeFeesAndPaySeller(
+                nftAddress,
+                msg.sender,
+                offer.currency,
+                offer.amount
+            );
 
         emit OfferAccepted(
             offeror,

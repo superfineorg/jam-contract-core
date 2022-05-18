@@ -63,14 +63,6 @@ contract JamMarketplace is JamMarketplaceHelpers {
         marketplaceId = keccak256("JAM_MARKETPLACE");
     }
 
-    function updateOwnerCut(uint256 _ownerCut) public onlyOwner {
-        require(
-            _ownerCut <= 10000,
-            "JamMarketplace: owner cut cannot exceed 100%"
-        );
-        ownerCut = _ownerCut;
-    }
-
     function _isOnAuction(Auction storage _auction)
         internal
         view
@@ -290,7 +282,12 @@ contract JamMarketplace is JamMarketplaceHelpers {
         );
         require(success, "JamMarketplace: not enough balance");
         if (_price > 0)
-            _handleMoney(_nftAddress, _seller, _erc20Address, _price);
+            _computeFeesAndPaySeller(
+                _nftAddress,
+                _seller,
+                _erc20Address,
+                _price
+            );
         _transfer(_nftAddress, msg.sender, _tokenId);
         _removeAuction(_nftAddress, _tokenId);
     }
@@ -317,7 +314,8 @@ contract JamMarketplace is JamMarketplaceHelpers {
 
         _removeAuction(_nftAddress, _tokenId);
 
-        if (_price > 0) _handleMoney(_nftAddress, _seller, address(0), _price);
+        if (_price > 0)
+            _computeFeesAndPaySeller(_nftAddress, _seller, address(0), _price);
 
         if (_bidAmount > _price) {
             // Calculate any excess funds included with the bid. If the excess

@@ -448,7 +448,8 @@ contract JamClockAuction is JamMarketplaceHelpers {
         _removeAuction(nftAddress, tokenId);
         if (currency != address(0))
             IERC20(currency).transferFrom(msg.sender, address(this), bidAmount);
-        if (price > 0) _handleMoney(nftAddress, seller, currency, price);
+        if (price > 0)
+            _computeFeesAndPaySeller(nftAddress, seller, currency, price);
         if (bidAmount > price) {
             uint256 bidExcess = bidAmount - price;
             if (currency == address(0)) {

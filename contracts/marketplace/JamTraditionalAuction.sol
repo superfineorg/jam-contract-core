@@ -359,7 +359,8 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         delete _auctions[nftAddress][tokenId];
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
-        if (price > 0) _handleMoney(nftAddress, seller, currency, price);
+        if (price > 0)
+            _computeFeesAndPaySeller(nftAddress, seller, currency, price);
 
         // Give assets to winner
         IERC721(nftAddress).transferFrom(address(this), winner, tokenId);
