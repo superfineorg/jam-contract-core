@@ -2,6 +2,7 @@ require('@nomiclabs/hardhat-ethers');
 
 const hre = require('hardhat');
 const { expect } = require("chai");
+const JAM_NFT_OWNERS = "JamNFTOwners";
 const JAM_MARKETPLACE_HUB = "JamMarketplaceHub";
 const JAM_MARKETPLACE = "JamMarketplace";
 const JAM_CLOCK_AUCTION = "JamClockAuction";
@@ -42,9 +43,14 @@ before("Deploy all contracts", async () => {
   );
   await this.erc721Contract.deployed();
 
+  // Deploy JamNFTOwners
+  this.jamNFTOwnersFactory = await hre.ethers.getContractFactory(JAM_NFT_OWNERS);
+  this.jamNFTOwnersContract = await this.jamNFTOwnersFactory.deploy();
+  await this.jamNFTOwnersContract.deployed();
+
   // Deploy JamMarketplaceHub
   this.hubFactory = await hre.ethers.getContractFactory(JAM_MARKETPLACE_HUB);
-  this.hubContract = await this.hubFactory.deploy();
+  this.hubContract = await this.hubFactory.deploy(this.jamNFTOwnersContract.address);
   await this.hubContract.deployed();
 
   // Deploy JamMarketplace

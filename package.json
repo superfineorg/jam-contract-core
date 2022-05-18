@@ -23,6 +23,7 @@
     "crypto": "^1.0.1",
     "eccrypto": "^1.1.6",
     "fs": "^0.0.1-security",
+    "hardhat-contract-sizer": "^2.5.1",
     "rimraf": "^3.0.2",
     "sol-straightener": "^1.1.1",
     "solc": "0.4.25",

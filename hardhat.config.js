@@ -5,6 +5,7 @@ require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 // require('@openzeppelin/hardhat-defender');
 require("@nomiclabs/hardhat-web3");
+require('hardhat-contract-sizer');
 
 const ETHEREUM_PROVIDER = process.env.ETHEREUM_PROVIDER;
 const BSC_PROVIDER = process.env.BSC_PROVIDER;

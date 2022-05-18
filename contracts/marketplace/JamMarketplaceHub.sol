@@ -4,10 +4,16 @@ pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./JamMarketplaceHelpers.sol";
+import "./JamNFTOwners.sol";
 
 contract JamMarketplaceHub is Ownable {
+    address private _jamNFTOwners;
     mapping(bytes32 => address) private _marketplaceIdToAddress;
     mapping(address => bytes32) private _marketplaceAddressToId;
+
+    constructor(address nftOwnersContract) {
+        _jamNFTOwners = nftOwnersContract;
+    }
 
     function isMarketplace(address addr) external view returns (bool) {
         return _marketplaceAddressToId[addr] != 0x0;
@@ -43,6 +49,10 @@ contract JamMarketplaceHub is Ownable {
         address[] memory recipients,
         uint256[] memory percentages
     ) external {
+        require(
+            msg.sender == JamNFTOwners(_jamNFTOwners).getNFTOwner(nftAddress),
+            "JamMarketplaceHub: caller is not NFT owner"
+        );
         require(
             marketplaceIds.length == recipients.length &&
                 marketplaceIds.length == percentages.length,
