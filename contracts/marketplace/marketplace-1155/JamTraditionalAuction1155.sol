@@ -2,11 +2,12 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamTraditionalAuction1155 is JamMarketplaceHelpers {
+contract JamTraditionalAuction1155 is JamMarketplaceHelpers, ERC1155Holder {
     using Counters for Counters.Counter;
 
     // The information of an auction

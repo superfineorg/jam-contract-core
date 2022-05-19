@@ -2,11 +2,12 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamClockAuction1155 is JamMarketplaceHelpers {
+contract JamClockAuction1155 is JamMarketplaceHelpers, ERC1155Holder {
     using Counters for Counters.Counter;
 
     // The information of an auction
@@ -436,19 +437,12 @@ contract JamClockAuction1155 is JamMarketplaceHelpers {
     /** @dev Cancels an auction unconditionally. */
     function _cancelAuction(uint256 auctionId, address recipient) internal {
         Auction storage auction = _auctions[auctionId];
+        address nftAddress = auction.nftAddress;
+        uint256 tokenId = auction.tokenId;
+        uint256 quantity = auction.quantity;
         _removeAuction(auctionId);
-        _transfer(
-            auction.nftAddress,
-            recipient,
-            auction.tokenId,
-            auction.quantity
-        );
-        emit AuctionCancelled(
-            auctionId,
-            auction.nftAddress,
-            auction.tokenId,
-            auction.quantity
-        );
+        _transfer(nftAddress, recipient, tokenId, quantity);
+        emit AuctionCancelled(auctionId, nftAddress, tokenId, quantity);
     }
 
     /**

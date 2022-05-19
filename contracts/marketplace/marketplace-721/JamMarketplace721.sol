@@ -2,11 +2,12 @@
 
 pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamMarketplace721 is JamMarketplaceHelpers {
+contract JamMarketplace721 is JamMarketplaceHelpers, ERC721Holder {
     using SafeMath for uint256;
 
     // Represents an auction on an NFT
@@ -106,7 +107,7 @@ contract JamMarketplace721 is JamMarketplaceHelpers {
         IERC721 _nftContract = _getNftContract(_nftAddress);
 
         // It will throw if transfer fails
-        _nftContract.transferFrom(address(this), _receiver, _tokenId);
+        _nftContract.safeTransferFrom(address(this), _receiver, _tokenId);
     }
 
     function _addAuction(
@@ -134,7 +135,7 @@ contract JamMarketplace721 is JamMarketplaceHelpers {
         IERC721 _nftContract = _getNftContract(_nftAddress);
 
         // It will throw if transfer fails
-        _nftContract.transferFrom(_owner, address(this), _tokenId);
+        _nftContract.safeTransferFrom(_owner, address(this), _tokenId);
     }
 
     /// @dev Removes an auction from the list of open auctions.

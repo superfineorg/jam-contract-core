@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamP2PTrading721 is JamMarketplaceHelpers {
+contract JamP2PTrading721 is JamMarketplaceHelpers, ERC721Holder {
     struct Offer {
         address offeror;
         address nftAddress;
@@ -272,7 +273,7 @@ contract JamP2PTrading721 is JamMarketplaceHelpers {
 
         // Sell it to the offeror
         owner_ = IERC721(nftAddress).ownerOf(tokenId);
-        IERC721(nftAddress).transferFrom(owner_, offeror, tokenId);
+        IERC721(nftAddress).safeTransferFrom(owner_, offeror, tokenId);
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
         if (offer.amount > 0)

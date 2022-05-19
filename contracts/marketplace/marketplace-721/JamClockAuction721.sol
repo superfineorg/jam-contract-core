@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamClockAuction721 is JamMarketplaceHelpers {
+contract JamClockAuction721 is JamMarketplaceHelpers, ERC721Holder {
     // The information of an auction
     struct Auction {
         address seller;
@@ -428,7 +429,7 @@ contract JamClockAuction721 is JamMarketplaceHelpers {
         uint256 tokenId
     ) internal {
         IERC721 nftContract = _getNftContract(nftAddress);
-        nftContract.transferFrom(owner, address(this), tokenId);
+        nftContract.safeTransferFrom(owner, address(this), tokenId);
     }
 
     /**
@@ -444,7 +445,7 @@ contract JamClockAuction721 is JamMarketplaceHelpers {
         uint256 tokenId
     ) internal {
         IERC721 nftContract = _getNftContract(nftAddress);
-        nftContract.transferFrom(address(this), receiver, tokenId);
+        nftContract.safeTransferFrom(address(this), receiver, tokenId);
     }
 
     /**

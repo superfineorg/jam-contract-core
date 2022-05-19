@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.6;
 
+import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "../JamMarketplaceHelpers.sol";
 
-contract JamTraditionalAuction721 is JamMarketplaceHelpers {
+contract JamTraditionalAuction721 is JamMarketplaceHelpers, ERC721Holder {
     // The information of an auction
     struct Auction {
         address seller;
@@ -154,7 +155,11 @@ contract JamTraditionalAuction721 is JamMarketplaceHelpers {
             endAt - block.timestamp >= 10 minutes,
             "JamTraditionalAuction721: too short auction"
         );
-        IERC721(nftAddress).transferFrom(msg.sender, address(this), tokenId);
+        IERC721(nftAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
         _auctions[nftAddress][tokenId] = Auction(
             msg.sender,
             currency,
@@ -367,7 +372,7 @@ contract JamTraditionalAuction721 is JamMarketplaceHelpers {
             _computeFeesAndPaySeller(nftAddress, seller, currency, price);
 
         // Give assets to winner
-        IERC721(nftAddress).transferFrom(address(this), winner, tokenId);
+        IERC721(nftAddress).safeTransferFrom(address(this), winner, tokenId);
 
         emit AuctionSuccessful(nftAddress, tokenId, currency, price, winner);
     }
@@ -379,7 +384,7 @@ contract JamTraditionalAuction721 is JamMarketplaceHelpers {
         address recipient
     ) internal {
         delete _auctions[nftAddress][tokenId];
-        IERC721(nftAddress).transferFrom(address(this), recipient, tokenId);
+        IERC721(nftAddress).safeTransferFrom(address(this), recipient, tokenId);
         emit AuctionCancelled(nftAddress, tokenId);
     }
 }
