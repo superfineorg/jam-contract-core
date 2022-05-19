@@ -126,6 +126,21 @@ contract JamClockAuction721 is JamMarketplaceHelpers, ERC721Holder {
     }
 
     /**
+     * @dev Returns a person who is allowed to cancel an auction
+     * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
+     * @param tokenId - ID of token to auction
+     * @notice Sellers are only allowed to cancel ERC721 auctions to accept offers.
+     */
+    function auctionCancelPermittee(address nftAddress, uint256 tokenId)
+        external
+        view
+        override
+        returns (address)
+    {
+        return _auctions[nftAddress][tokenId].seller;
+    }
+
+    /**
      * @dev Creates and begins a new auction.
      * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
      * @param tokenId - ID of token to auction, sender must be owner.

@@ -330,13 +330,13 @@ describe("Test JamTraditionalAuction", () => {
   });
 
   it("Cancel this auction", async () => {
-    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    let cancelPermittee = await this.jamTraditionalAuctionContract.auctionCancelPermittee(this.erc721Contract.address, 4);
     await this.jamTraditionalAuctionFactory
       .connect(this.seller)
       .attach(this.jamTraditionalAuctionContract.address)
       .cancelAuction721(this.erc721Contract.address, 4);
     let currentOwner = await this.erc721Contract.ownerOf(4);
-    expect(isAuctionCancelable).to.equal(true);
+    expect(cancelPermittee).to.equal(this.seller.address);
     expect(currentOwner).to.equal(this.seller.address);
   });
 
@@ -386,9 +386,9 @@ describe("Test JamTraditionalAuction", () => {
       .connect(this.buyer1)
       .attach(this.jamTraditionalAuctionContract.address)
       .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("25"));
-    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    let cancelPermittee = await this.jamTraditionalAuctionContract.auctionCancelPermittee(this.erc721Contract.address, 4);
     let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
-    expect(isAuctionCancelable).to.equal(false);
+    expect(cancelPermittee).to.equal(ZERO_ADDRESS);
     expect(auction.seller).to.equal(this.seller.address);
     expect(auction.currency).to.equal(this.erc20Contract.address);
     expect(auction.highestBidder).to.equal(this.buyer1.address);
@@ -414,9 +414,9 @@ describe("Test JamTraditionalAuction", () => {
       .connect(this.buyer2)
       .attach(this.jamTraditionalAuctionContract.address)
       .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("30"));
-    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 4);
+    let cancelPermittee = await this.jamTraditionalAuctionContract.auctionCancelPermittee(this.erc721Contract.address, 4);
     let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 4);
-    expect(isAuctionCancelable).to.equal(false);
+    expect(cancelPermittee).to.equal(ZERO_ADDRESS);
     expect(auction.seller).to.equal(this.seller.address);
     expect(auction.currency).to.equal(this.erc20Contract.address);
     expect(auction.highestBidder).to.equal(this.buyer2.address);
@@ -474,9 +474,9 @@ describe("Test JamTraditionalAuction", () => {
         hre.ethers.utils.parseEther("7"),
         { value: hre.ethers.utils.parseEther("7") }
       );
-    let isAuctionCancelable = await this.jamTraditionalAuctionContract.isAuctionCancelable(this.erc721Contract.address, 5);
+    let cancelPermittee = await this.jamTraditionalAuctionContract.auctionCancelPermittee(this.erc721Contract.address, 5);
     let auction = await this.jamTraditionalAuctionContract.getAuction(this.erc721Contract.address, 5);
-    expect(isAuctionCancelable).to.equal(false);
+    expect(cancelPermittee).to.equal(ZERO_ADDRESS);
     expect(auction.seller).to.equal(this.seller.address);
     expect(auction.currency).to.equal(ZERO_ADDRESS);
     expect(auction.highestBidder).to.equal(this.buyer2.address);
@@ -497,7 +497,7 @@ describe("Test JamP2PTrading", () => {
         hre.ethers.utils.parseEther("12"),
         { value: hre.ethers.utils.parseEther("12") }
       );
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc721Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,
@@ -532,7 +532,7 @@ describe("Test JamP2PTrading", () => {
         this.erc20Contract.address,
         hre.ethers.utils.parseEther("15")
       );
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc721Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,
@@ -555,7 +555,7 @@ describe("Test JamP2PTrading", () => {
       .connect(this.buyer1)
       .attach(this.jamP2PTradingContract.address)
       .cancelOffer(this.erc721Contract.address, 6);
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc721Contract.address, 6);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc721Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,

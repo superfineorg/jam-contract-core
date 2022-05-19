@@ -485,15 +485,13 @@ describe("Test JamP2PTrading", () => {
         hre.ethers.utils.parseEther("12"),
         { value: hre.ethers.utils.parseEther("12") }
       );
-    let lowQuantityOffers = await this.jamP2PTradingContract.getOffersFor(this.erc1155Contract.address, 6, 59);
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc1155Contract.address, 6, 1000);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc1155Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,
       this.erc1155Contract.address,
       6
     );
-    expect(lowQuantityOffers.length).to.equal(0);
     expect(offer.offeror).to.equal(this.buyer1.address);
     expect(offer.nftAddress).to.equal(this.erc1155Contract.address);
     expect(offer.tokenId.toString()).to.equal("6");
@@ -523,7 +521,7 @@ describe("Test JamP2PTrading", () => {
         this.erc20Contract.address,
         hre.ethers.utils.parseEther("15")
       );
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc1155Contract.address, 6, 1000);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc1155Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,
@@ -546,7 +544,7 @@ describe("Test JamP2PTrading", () => {
       .connect(this.buyer1)
       .attach(this.jamP2PTradingContract.address)
       .cancelOffer(this.erc1155Contract.address, 6);
-    let offersForNFT = await this.jamP2PTradingContract.getOffersFor(this.erc1155Contract.address, 6, 1000);
+    let offersForNFT = await this.jamP2PTradingContract.getAllOffersFor(this.erc1155Contract.address, 6);
     let offersOfOfferer = await this.jamP2PTradingContract.getOffersOf(this.buyer1.address);
     let offer = await this.jamP2PTradingContract.getSpecificOffer(
       this.buyer1.address,

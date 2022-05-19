@@ -62,19 +62,28 @@ contract JamP2PTrading1155 is JamMarketplaceHelpers {
         marketplaceId = keccak256("JAM_P2P_TRADING_1155");
     }
 
-    function getOffersFor(
+    function getAllOffersFor(address nftAddress, uint256 tokenId)
+        external
+        view
+        returns (Offer[] memory)
+    {
+        return _offersFor[nftAddress][tokenId];
+    }
+
+    function getAcceptableOffersFor(
         address nftAddress,
         uint256 tokenId,
-        uint256 maxQuantity
+        address user
     ) external view returns (Offer[] memory) {
         uint256 offerCount = 0;
         uint256 numAcceptableOffers = 0;
+        uint256 balance = IERC1155(nftAddress).balanceOf(user, tokenId);
         Offer[] memory allOffers = _offersFor[nftAddress][tokenId];
         for (uint256 i = 0; i < allOffers.length; i++)
-            if (allOffers[i].quantity <= maxQuantity) numAcceptableOffers++;
+            if (allOffers[i].quantity <= balance) numAcceptableOffers++;
         Offer[] memory acceptableOffers = new Offer[](numAcceptableOffers);
         for (uint256 i = 0; i < allOffers.length; i++)
-            if (allOffers[i].quantity <= maxQuantity) {
+            if (allOffers[i].quantity <= balance) {
                 acceptableOffers[offerCount] = allOffers[i];
                 offerCount++;
             }

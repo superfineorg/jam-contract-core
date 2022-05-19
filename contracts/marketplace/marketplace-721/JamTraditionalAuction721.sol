@@ -123,17 +123,21 @@ contract JamTraditionalAuction721 is JamMarketplaceHelpers, ERC721Holder {
     }
 
     /**
-     * @dev The auction is cancelable if no one has bidded so far
+     * @dev Returns a person who is allowed to cancel an auction
      * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
      * @param tokenId - ID of token to auction
+     * @notice Sellers are only allowed to cancel ERC721 auctions to accept offers.
+     * ERC1155 auctions cannot be cancelled for this reason.
      */
-    function isAuctionCancelable(address nftAddress, uint256 tokenId)
+    function auctionCancelPermittee(address nftAddress, uint256 tokenId)
         external
         view
         override
-        returns (bool)
+        returns (address)
     {
-        return _auctions[nftAddress][tokenId].highestBidder == address(0);
+        if (_auctions[nftAddress][tokenId].highestBidder == address(0))
+            return _auctions[nftAddress][tokenId].seller;
+        return address(0);
     }
 
     /**

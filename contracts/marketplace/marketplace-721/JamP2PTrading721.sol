@@ -54,20 +54,31 @@ contract JamP2PTrading721 is JamMarketplaceHelpers, ERC721Holder {
         marketplaceId = keccak256("JAM_P2P_TRADING_721");
     }
 
-    function getOffersFor(address nftAddress, uint256 tokenId)
+    function getAllOffersFor(address nftAddress, uint256 tokenId)
         external
         view
         returns (Offer[] memory)
     {
-        address owner_ = IERC721(nftAddress).ownerOf(tokenId);
-        if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_))
-            if (
-                !JamMarketplaceHelpers(owner_).isAuctionCancelable(
-                    nftAddress,
-                    tokenId
-                )
-            ) return new Offer[](0);
         return _offersFor[nftAddress][tokenId];
+    }
+
+    function getAcceptableOffersFor(
+        address nftAddress,
+        uint256 tokenId,
+        address user
+    ) external view returns (Offer[] memory) {
+        Offer[] memory allOffers = _offersFor[nftAddress][tokenId];
+        Offer[] memory noOffers = new Offer[](0);
+        address owner_ = IERC721(nftAddress).ownerOf(tokenId);
+        if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_)) {
+            address cancelPermittee = JamMarketplaceHelpers(owner_)
+                .auctionCancelPermittee(nftAddress, tokenId);
+            if (cancelPermittee == user) return allOffers;
+            else return noOffers;
+        } else {
+            if (owner_ == user) return allOffers;
+            else return noOffers;
+        }
     }
 
     function getOffersOf(address offeror)
@@ -267,7 +278,11 @@ contract JamP2PTrading721 is JamMarketplaceHelpers, ERC721Holder {
         // Cancel the auction if the NFT is on marketplace
         if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_)) {
             JamMarketplaceHelpers marketplace = JamMarketplaceHelpers(owner_);
-            if (marketplace.isAuctionCancelable(nftAddress, tokenId))
+            address cancelPermittee = marketplace.auctionCancelPermittee(
+                nftAddress,
+                tokenId
+            );
+            if (msg.sender == cancelPermittee)
                 marketplace.cancelAuction721(nftAddress, tokenId);
         }
 
