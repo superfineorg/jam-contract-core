@@ -3,9 +3,9 @@
 pragma solidity ^0.8.6;
 
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./JamMarketplaceHelpers.sol";
+import "../JamMarketplaceHelpers.sol";
 
-contract JamTraditionalAuction is JamMarketplaceHelpers {
+contract JamTraditionalAuction721 is JamMarketplaceHelpers {
     // The information of an auction
     struct Auction {
         address seller;
@@ -61,7 +61,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
     ) {
         require(
             IERC721(nftAddress).ownerOf(tokenId) == claimant,
-            "JamTraditionalAuction: sender is not owner of NFT"
+            "JamTraditionalAuction721: sender is not owner of NFT"
         );
         _;
     }
@@ -71,9 +71,9 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
             msg.sender == _auctions[nftAddress][tokenId].seller ||
                 msg.sender ==
                 JamMarketplaceHub(_marketplaceHub).getMarketplace(
-                    keccak256("JAM_P2P_TRADING")
+                    keccak256("JAM_P2P_TRADING_721")
                 ),
-            "JamTraditionalAuction: sender is not seller"
+            "JamTraditionalAuction721: sender is not seller nor trading marketplace"
         );
         _;
     }
@@ -81,7 +81,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
     modifier isOnAuction(address nftAddress, uint256 tokenId) {
         require(
             _auctions[nftAddress][tokenId].endAt > 0,
-            "JamTraditionalAuction: auction not exists"
+            "JamTraditionalAuction721: auction not exists"
         );
         _;
     }
@@ -89,7 +89,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
     constructor(address hubAddress, uint256 ownerCut_)
         JamMarketplaceHelpers(hubAddress, ownerCut_)
     {
-        marketplaceId = keccak256("JAM_TRADITIONAL_AUCTION");
+        marketplaceId = keccak256("JAM_TRADITIONAL_AUCTION_721");
     }
 
     receive() external payable {}
@@ -152,7 +152,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
     ) external whenNotPaused owns(nftAddress, msg.sender, tokenId) {
         require(
             endAt - block.timestamp >= 10 minutes,
-            "JamTraditionalAuction: too short auction"
+            "JamTraditionalAuction721: too short auction"
         );
         IERC721(nftAddress).transferFrom(msg.sender, address(this), tokenId);
         _auctions[nftAddress][tokenId] = Auction(
@@ -195,11 +195,11 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         Auction storage auction = _auctions[nftAddress][tokenId];
         require(
             endAt - block.timestamp >= 10 minutes,
-            "JamTraditionalAuction: too short auction"
+            "JamTraditionalAuction721: too short auction"
         );
         require(
             auction.highestBidder == address(0),
-            "JamTraditionalAuction: cannot update auction after first bid"
+            "JamTraditionalAuction721: cannot update auction after first bid"
         );
         auction.currency = currency;
         auction.highestBidAmount = startingPrice;
@@ -221,7 +221,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
      * @param nftAddress - Address of the NFT.
      * @param tokenId - ID of token on auction
      */
-    function cancelAuction(address nftAddress, uint256 tokenId)
+    function cancelAuction721(address nftAddress, uint256 tokenId)
         external
         override
         isOnAuction(nftAddress, tokenId)
@@ -230,7 +230,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         Auction memory auction = _auctions[nftAddress][tokenId];
         require(
             auction.highestBidder == address(0),
-            "JamTraditionalAuction: cannot cancel auction after first bid"
+            "JamTraditionalAuction721: cannot cancel auction after first bid"
         );
         _cancelAuction(nftAddress, tokenId, msg.sender);
     }
@@ -272,20 +272,20 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         Auction storage auction = _auctions[nftAddress][tokenId];
         require(
             block.timestamp < auction.endAt,
-            "JamTraditionalAuction: auction already ended"
+            "JamTraditionalAuction721: auction already ended"
         );
         if (auction.currency == address(0))
             require(
                 bidAmount == msg.value,
-                "JamTraditionalAuction: bid amount info mismatch"
+                "JamTraditionalAuction721: bid amount info mismatch"
             );
         else {
             (bool success, ) = payable(msg.sender).call{value: msg.value}("");
-            require(success, "JamTraditionalAuction: return money failed");
+            require(success, "JamTraditionalAuction721: return money failed");
         }
         require(
             bidAmount > auction.highestBidAmount,
-            "JamTraditionalAuction: currently has higher bid"
+            "JamTraditionalAuction721: currently has higher bid"
         );
 
         // Return money to previous bidder
@@ -296,7 +296,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
                 }("");
                 require(
                     success,
-                    "JamTraditionalAuction: return money to previous bidder failed"
+                    "JamTraditionalAuction721: return money to previous bidder failed"
                 );
             } else {
                 IERC20 currencyContract = IERC20(auction.currency);
@@ -306,7 +306,7 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
                 );
                 require(
                     success,
-                    "JamTraditionalAuction: return money to previous bidder failed"
+                    "JamTraditionalAuction721: return money to previous bidder failed"
                 );
             }
 
@@ -344,15 +344,19 @@ contract JamTraditionalAuction is JamMarketplaceHelpers {
         Auction memory auction = _auctions[nftAddress][tokenId];
         require(
             block.timestamp >= auction.endAt,
-            "JamTraditionalAuction: auction not ends yet"
+            "JamTraditionalAuction721: auction not ends yet"
         );
         address winner = auction.highestBidder;
         address seller = auction.seller;
         address currency = auction.currency;
         uint256 price = auction.highestBidAmount;
         require(
+            winner != address(0),
+            "JamTraditionalAuction721: no-one bids on this auction"
+        );
+        require(
             msg.sender == winner || msg.sender == seller,
-            "JamTraditionalAuction: sender is not winner nor seller"
+            "JamTraditionalAuction721: sender is not winner nor seller"
         );
 
         //  Auction is successful, remove its info

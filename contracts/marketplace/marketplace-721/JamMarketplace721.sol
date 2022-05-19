@@ -4,9 +4,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "./JamMarketplaceHelpers.sol";
+import "../JamMarketplaceHelpers.sol";
 
-contract JamMarketplace is JamMarketplaceHelpers {
+contract JamMarketplace721 is JamMarketplaceHelpers {
     using SafeMath for uint256;
 
     // Represents an auction on an NFT
@@ -20,7 +20,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
     }
 
     // Map from an NFT (NFT address + token ID) to its corresponding auction.
-    mapping(address => mapping(uint256 => Auction)) public auctions;
+    mapping(address => mapping(uint256 => Auction)) private _auctions;
 
     event AuctionCreated(
         address indexed nftAddress,
@@ -44,7 +44,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
     modifier canBeStoredWith64Bits(uint256 _value) {
         require(
             _value <= type(uint64).max,
-            "JamMarketplace: cannot be stored with 64 bits"
+            "JamMarketplace721: cannot be stored with 64 bits"
         );
         _;
     }
@@ -52,7 +52,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
     modifier canBeStoredWith128Bits(uint256 _value) {
         require(
             _value < type(uint128).max,
-            "JamMarketplace: cannot be stored with 128 bits"
+            "JamMarketplace721: cannot be stored with 128 bits"
         );
         _;
     }
@@ -60,7 +60,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
     constructor(address hubAddress, uint256 ownerCut_)
         JamMarketplaceHelpers(hubAddress, ownerCut_)
     {
-        marketplaceId = keccak256("JAM_MARKETPLACE");
+        marketplaceId = keccak256("JAM_MARKETPLACE_721");
     }
 
     function _isOnAuction(Auction storage _auction)
@@ -115,7 +115,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
         Auction memory _auction,
         address _seller
     ) internal {
-        auctions[_nftAddress][_tokenId] = _auction;
+        _auctions[_nftAddress][_tokenId] = _auction;
 
         emit AuctionCreated(
             _nftAddress,
@@ -140,7 +140,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
     /// @dev Removes an auction from the list of open auctions.
     /// @param _tokenId - ID of NFT on auction.
     function _removeAuction(address _nftAddress, uint256 _tokenId) internal {
-        delete auctions[_nftAddress][_tokenId];
+        delete _auctions[_nftAddress][_tokenId];
     }
 
     /// @dev Cancels an auction unconditionally.
@@ -164,8 +164,8 @@ contract JamMarketplace is JamMarketplaceHelpers {
             uint256 startedAt
         )
     {
-        Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction), "JamMarketplace: not on auction");
+        Auction storage _auction = _auctions[_nftAddress][_tokenId];
+        require(_isOnAuction(_auction), "JamMarketplace721: not on auction");
         return (
             _auction.seller,
             _auction.price,
@@ -188,7 +188,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
         address _seller = msg.sender;
         require(
             _owns(_nftAddress, _seller, _tokenId),
-            "JamMarketplace: only owner can create auction"
+            "JamMarketplace721: only owner can create auction"
         );
         _escrow(_nftAddress, _seller, _tokenId);
 
@@ -206,19 +206,19 @@ contract JamMarketplace is JamMarketplaceHelpers {
     /// @dev Cancels an auction.
     /// @param _nftAddress - Address of the NFT.
     /// @param _tokenId - ID of the NFT on auction to cancel.
-    function cancelAuction(address _nftAddress, uint256 _tokenId)
+    function cancelAuction721(address _nftAddress, uint256 _tokenId)
         external
         override
     {
-        Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction), "JamMarketplace: not on auction");
+        Auction storage _auction = _auctions[_nftAddress][_tokenId];
+        require(_isOnAuction(_auction), "JamMarketplace721: not on auction");
         require(
             msg.sender == _auction.seller ||
                 msg.sender ==
                 JamMarketplaceHub(_marketplaceHub).getMarketplace(
-                    keccak256("JAM_P2P_TRADING")
+                    keccak256("JAM_P2P_TRADING_721")
                 ),
-            "JamMarketplace: only seller can cancel auction"
+            "JamMarketplace721: only seller can cancel auction"
         );
         _cancelAuction(_nftAddress, _tokenId, msg.sender);
     }
@@ -233,8 +233,8 @@ contract JamMarketplace is JamMarketplaceHelpers {
         whenPaused
         onlyOwner
     {
-        Auction storage _auction = auctions[_nftAddress][_tokenId];
-        require(_isOnAuction(_auction), "JamMarketplace: not on auction");
+        Auction storage _auction = _auctions[_nftAddress][_tokenId];
+        require(_isOnAuction(_auction), "JamMarketplace721: not on auction");
         _cancelAuction(_nftAddress, _tokenId, _auction.seller);
     }
 
@@ -243,10 +243,10 @@ contract JamMarketplace is JamMarketplaceHelpers {
         payable
         whenNotPaused
     {
-        Auction memory auction = auctions[_nftAddress][_tokenId];
+        Auction memory auction = _auctions[_nftAddress][_tokenId];
         require(
             auction.erc20Address == address(0),
-            "JamMarketplace: cannot buy this item with native token"
+            "JamMarketplace721: can only be paid with native token"
         );
         // _bid will throw if the bid or funds transfer fails
         _buy(_nftAddress, _tokenId, msg.value);
@@ -258,21 +258,27 @@ contract JamMarketplace is JamMarketplaceHelpers {
         uint256 _tokenId,
         uint256 _maxPrice
     ) external whenNotPaused nonReentrant {
-        Auction storage _auction = auctions[_nftAddress][_tokenId];
+        Auction storage _auction = _auctions[_nftAddress][_tokenId];
         require(
             _auction.erc20Address != address(0),
-            "JamMarketplace: can only be paid with native token"
+            "JamMarketplace721: cannot buy this item with native token"
         );
-        require(_isOnAuction(_auction), "JamMarketplace: not on auction");
+        require(_isOnAuction(_auction), "JamMarketplace721: not on auction");
         uint256 _price = _auction.price;
-        require(_price <= _maxPrice, "JamMarketplace: item price is too high");
+        require(
+            _price <= _maxPrice,
+            "JamMarketplace721: item price is too high"
+        );
         address _erc20Address = _auction.erc20Address;
 
         IERC20 erc20Contract = _getERC20Contract(_erc20Address);
 
         uint256 _allowance = erc20Contract.allowance(msg.sender, address(this));
 
-        require(_allowance >= _price, "JamMarketplace: not enough allowance");
+        require(
+            _allowance >= _price,
+            "JamMarketplace721: not enough allowance"
+        );
 
         address _seller = _auction.seller;
         bool success = erc20Contract.transferFrom(
@@ -280,7 +286,7 @@ contract JamMarketplace is JamMarketplaceHelpers {
             address(this),
             _price
         );
-        require(success, "JamMarketplace: not enough balance");
+        require(success, "JamMarketplace721: not enough balance");
         if (_price > 0)
             _computeFeesAndPaySeller(
                 _nftAddress,
@@ -300,14 +306,14 @@ contract JamMarketplace is JamMarketplaceHelpers {
         uint256 _bidAmount
     ) internal returns (uint256) {
         // Get a reference to the auction struct
-        Auction storage _auction = auctions[_nftAddress][_tokenId];
+        Auction storage _auction = _auctions[_nftAddress][_tokenId];
 
-        require(_isOnAuction(_auction), "JamMarketplace: not on auction");
+        require(_isOnAuction(_auction), "JamMarketplace721: not on auction");
         uint256 _price = _auction.price;
 
         require(
             _bidAmount >= _price,
-            "JamMarketplace: bid amount cannot be less than price"
+            "JamMarketplace721: bid amount cannot be less than price"
         );
 
         address _seller = _auction.seller;

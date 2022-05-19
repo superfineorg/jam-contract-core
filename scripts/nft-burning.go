@@ -42,9 +42,9 @@ func buildQuery(contract common.Address, eventSelector common.Hash, startBlock *
 func main() {
 	// burnErc721()
 	burnErc1155(
-		common.HexToAddress("b23ff606F4D9bbBBf81ca1573CD43793f95C27e1"),
-		[]*big.Int{big.NewInt(121212)},
+		common.HexToAddress("Ed6922a7065Ad1E7aAA34baA80828796cA011C3d"),
 		[]*big.Int{big.NewInt(123)},
+		[]*big.Int{big.NewInt(10)},
 	)
 }
 

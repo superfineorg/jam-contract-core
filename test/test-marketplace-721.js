@@ -4,10 +4,10 @@ const hre = require('hardhat');
 const { expect } = require("chai");
 const JAM_NFT_OWNERS = "JamNFTOwners";
 const JAM_MARKETPLACE_HUB = "JamMarketplaceHub";
-const JAM_MARKETPLACE = "JamMarketplace";
-const JAM_CLOCK_AUCTION = "JamClockAuction";
-const JAM_TRADITIONAL_AUCTION = "JamTraditionalAuction";
-const JAM_P2P_TRADING = "JamP2PTrading";
+const JAM_MARKETPLACE = "JamMarketplace721";
+const JAM_CLOCK_AUCTION = "JamClockAuction721";
+const JAM_TRADITIONAL_AUCTION = "JamTraditionalAuction721";
+const JAM_P2P_TRADING = "JamP2PTrading721";
 const ERC20 = "JamToken";
 const ERC721 = "JamNFT721";
 const PROXY_REGISTRY = "contracts/tokens/ERC721/ERC721Tradable.sol:ProxyRegistry";
@@ -267,7 +267,7 @@ describe("Test JamClockAuction", () => {
     await this.jamClockAuctionFactory
       .connect(this.seller)
       .attach(this.jamClockAuctionContract.address)
-      .cancelAuction(this.erc721Contract.address, 3);
+      .cancelAuction721(this.erc721Contract.address, 3);
     let currentOwner = await this.erc721Contract.ownerOf(3);
     expect(currentOwner).to.equal(this.seller.address);
   });
@@ -294,7 +294,7 @@ describe("Test JamClockAuction", () => {
         .connect(this.buyer1)
         .attach(this.jamClockAuctionContract.address)
         .bid(this.erc721Contract.address, 3, 0, { value: price })
-    ).to.be.revertedWith("JamClockAuction: bid amount info mismatch");
+    ).to.be.revertedWith("JamClockAuction721: bid amount info mismatch");
     await this.jamClockAuctionFactory
       .connect(this.buyer1)
       .attach(this.jamClockAuctionContract.address)
@@ -334,7 +334,7 @@ describe("Test JamTraditionalAuction", () => {
     await this.jamTraditionalAuctionFactory
       .connect(this.seller)
       .attach(this.jamTraditionalAuctionContract.address)
-      .cancelAuction(this.erc721Contract.address, 4);
+      .cancelAuction721(this.erc721Contract.address, 4);
     let currentOwner = await this.erc721Contract.ownerOf(4);
     expect(isAuctionCancelable).to.equal(true);
     expect(currentOwner).to.equal(this.seller.address);
@@ -409,7 +409,7 @@ describe("Test JamTraditionalAuction", () => {
         .connect(this.buyer2)
         .attach(this.jamTraditionalAuctionContract.address)
         .bid(this.erc721Contract.address, 4, hre.ethers.utils.parseEther("25"))
-    ).to.be.revertedWith("JamTraditionalAuction: currently has higher bid");
+    ).to.be.revertedWith("JamTraditionalAuction721: currently has higher bid");
     await this.jamTraditionalAuctionFactory
       .connect(this.buyer2)
       .attach(this.jamTraditionalAuctionContract.address)
@@ -430,7 +430,7 @@ describe("Test JamTraditionalAuction", () => {
   //       .connect(this.buyer2)
   //       .attach(this.jamTraditionalAuctionContract.address)
   //       .finalizeAuction(this.erc721Contract.address, 4)
-  //   ).to.be.revertedWith("JamTraditionalAuction: auction not ends yet");
+  //   ).to.be.revertedWith("JamTraditionalAuction721: auction not ends yet");
   //   await sleep(20000);
   //   await this.jamTraditionalAuctionFactory
   //     .connect(this.buyer2)

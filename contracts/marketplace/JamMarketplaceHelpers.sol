@@ -74,6 +74,8 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
      * @dev Check if this auction is currently cancelable
      * @param nftAddress - address of a deployed contract implementing the non-fungible interface.
      * @param tokenId - ID of token to auction
+     * @notice Sellers are only allowed to cancel ERC721 auctions to accept offers.
+     * ERC1155 auctions cannot be cancelled for this reason.
      */
     function isAuctionCancelable(address nftAddress, uint256 tokenId)
         external
@@ -143,10 +145,12 @@ abstract contract JamMarketplaceHelpers is Ownable, Pausable, ReentrancyGuard {
         JamMarketplaceHub(_marketplaceHub).registerMarketplace(marketplaceId);
     }
 
-    function cancelAuction(address nftAddress, uint256 tokenId)
+    function cancelAuction721(address nftAddress, uint256 tokenId)
         external
         virtual
     {}
+
+    function cancelAuction1155(uint256 auctionId) external virtual {}
 
     function withdrawRoyalty(address currency) public {
         uint256 lastWithdraw = _lastWithdraws[msg.sender][currency];

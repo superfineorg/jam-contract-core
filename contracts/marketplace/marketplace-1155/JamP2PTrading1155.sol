@@ -2,19 +2,20 @@
 
 pragma solidity ^0.8.6;
 
-import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
-import "./JamMarketplaceHelpers.sol";
+import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
+import "../JamMarketplaceHelpers.sol";
 
-contract JamP2PTrading is JamMarketplaceHelpers {
+contract JamP2PTrading1155 is JamMarketplaceHelpers {
     struct Offer {
         address offeror;
         address nftAddress;
         uint256 tokenId;
+        uint256 quantity;
         address currency;
         uint256 amount;
     }
 
-    // Mapping from an NFT (NFT address + token ID) to its pending offers
+    // Mapping from an NFT type (NFT address + token ID) to its pending offers
     mapping(address => mapping(uint256 => Offer[])) private _offersFor;
 
     // Mapping from a user address to the offers he has made so far
@@ -24,6 +25,7 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         address offeror,
         address nftAddress,
         uint256 tokenId,
+        uint256 quantity,
         address currency,
         uint256 amount
     );
@@ -32,6 +34,7 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         address offeror,
         address nftAddress,
         uint256 tokenId,
+        uint256 quantity,
         address currency,
         uint256 amount
     );
@@ -41,32 +44,41 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         address accepter,
         address nftAddress,
         uint256 tokenId,
+        uint256 quantity,
         address currency,
         uint256 amount
     );
 
-    event OfferCancelled(address offeror, address nftAddress, uint256 tokenId);
+    event OfferCancelled(
+        address offeror,
+        address nftAddress,
+        uint256 tokenId,
+        uint256 quantity
+    );
 
     constructor(address hubAddress, uint256 ownerCut_)
         JamMarketplaceHelpers(hubAddress, ownerCut_)
     {
-        marketplaceId = keccak256("JAM_P2P_TRADING");
+        marketplaceId = keccak256("JAM_P2P_TRADING_1155");
     }
 
-    function getOffersFor(address nftAddress, uint256 tokenId)
-        external
-        view
-        returns (Offer[] memory)
-    {
-        address owner_ = IERC721(nftAddress).ownerOf(tokenId);
-        if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_))
-            if (
-                !JamMarketplaceHelpers(owner_).isAuctionCancelable(
-                    nftAddress,
-                    tokenId
-                )
-            ) return new Offer[](0);
-        return _offersFor[nftAddress][tokenId];
+    function getOffersFor(
+        address nftAddress,
+        uint256 tokenId,
+        uint256 maxQuantity
+    ) external view returns (Offer[] memory) {
+        uint256 offerCount = 0;
+        uint256 numAcceptableOffers = 0;
+        Offer[] memory allOffers = _offersFor[nftAddress][tokenId];
+        for (uint256 i = 0; i < allOffers.length; i++)
+            if (allOffers[i].quantity <= maxQuantity) numAcceptableOffers++;
+        Offer[] memory acceptableOffers = new Offer[](numAcceptableOffers);
+        for (uint256 i = 0; i < allOffers.length; i++)
+            if (allOffers[i].quantity <= maxQuantity) {
+                acceptableOffers[offerCount] = allOffers[i];
+                offerCount++;
+            }
+        return acceptableOffers;
     }
 
     function getOffersOf(address offeror)
@@ -93,27 +105,24 @@ contract JamP2PTrading is JamMarketplaceHelpers {
     function makeOffer(
         address nftAddress,
         uint256 tokenId,
+        uint256 quantity,
         address currency,
-        uint256 amount
+        uint256 offerAmount
     ) external payable {
         // Check offering conditions
         require(
-            IERC721(nftAddress).ownerOf(tokenId) != address(0),
-            "JamP2PTrading: NFT not exists"
-        );
-        require(
             getSpecificOffer(msg.sender, nftAddress, tokenId).offeror ==
                 address(0),
-            "JamP2PTrading: already offered before"
+            "JamP2PTrading1155: already offered before"
         );
         if (currency == address(0))
             require(
-                amount == msg.value,
-                "JamP2PTrading: offer amount info mismatch"
+                offerAmount == msg.value,
+                "JamP2PTrading1155: offer amount info mismatch"
             );
         else {
             (bool success, ) = payable(msg.sender).call{value: msg.value}("");
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         }
 
         // Save the offer's information
@@ -121,44 +130,59 @@ contract JamP2PTrading is JamMarketplaceHelpers {
             msg.sender,
             nftAddress,
             tokenId,
+            quantity,
             currency,
-            amount
+            offerAmount
         );
         _offersFor[nftAddress][tokenId].push(offer);
         _offersOf[msg.sender].push(offer);
 
         // Lock offeror's money
         if (currency != address(0))
-            IERC20(currency).transferFrom(msg.sender, address(this), amount);
+            IERC20(currency).transferFrom(
+                msg.sender,
+                address(this),
+                offerAmount
+            );
 
-        emit OfferCreated(msg.sender, nftAddress, tokenId, currency, amount);
+        emit OfferCreated(
+            msg.sender,
+            nftAddress,
+            tokenId,
+            quantity,
+            currency,
+            offerAmount
+        );
     }
 
     function updateOffer(
         address nftAddress,
         uint256 tokenId,
         address currency,
-        uint256 amount
+        uint256 offerAmount
     ) external payable nonReentrant {
         Offer memory offer = getSpecificOffer(msg.sender, nftAddress, tokenId);
 
         // Check updating conditions
-        require(offer.offeror == msg.sender, "JamP2PTrading: no offer found");
+        require(
+            offer.offeror == msg.sender,
+            "JamP2PTrading1155: no offer found"
+        );
         if (currency == address(0))
             require(
-                amount == msg.value,
-                "JamP2PTrading: offer amount info mismatch"
+                offerAmount == msg.value,
+                "JamP2PTrading1155: offer amount info mismatch"
             );
         else {
             (bool success, ) = payable(msg.sender).call{value: msg.value}("");
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         }
 
         // Save the new information
         for (uint256 i = 0; i < _offersFor[nftAddress][tokenId].length; i++)
             if (_offersFor[nftAddress][tokenId][i].offeror == msg.sender) {
                 _offersFor[nftAddress][tokenId][i].currency = currency;
-                _offersFor[nftAddress][tokenId][i].amount = amount;
+                _offersFor[nftAddress][tokenId][i].amount = offerAmount;
                 break;
             }
         for (uint256 i = 0; i < _offersOf[msg.sender].length; i++)
@@ -167,7 +191,7 @@ contract JamP2PTrading is JamMarketplaceHelpers {
                 _offersOf[msg.sender][i].tokenId == tokenId
             ) {
                 _offersOf[msg.sender][i].currency = currency;
-                _offersOf[msg.sender][i].amount = amount;
+                _offersOf[msg.sender][i].amount = offerAmount;
                 break;
             }
 
@@ -176,20 +200,31 @@ contract JamP2PTrading is JamMarketplaceHelpers {
             (bool success, ) = payable(msg.sender).call{value: offer.amount}(
                 ""
             );
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         } else {
             bool success = IERC20(offer.currency).transfer(
                 msg.sender,
                 offer.amount
             );
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         }
 
         // Lock new offer amount
         if (currency != address(0))
-            IERC20(currency).transferFrom(msg.sender, address(this), amount);
+            IERC20(currency).transferFrom(
+                msg.sender,
+                address(this),
+                offerAmount
+            );
 
-        emit OfferUpdated(msg.sender, nftAddress, tokenId, currency, amount);
+        emit OfferUpdated(
+            msg.sender,
+            nftAddress,
+            tokenId,
+            offer.quantity,
+            currency,
+            offerAmount
+        );
     }
 
     function cancelOffer(address nftAddress, uint256 tokenId)
@@ -201,7 +236,7 @@ contract JamP2PTrading is JamMarketplaceHelpers {
         // Check cancelling conditions
         require(
             offer.offeror == msg.sender,
-            "JamP2PTrading: sender is not offeror"
+            "JamP2PTrading1155: sender is not offeror"
         );
 
         // Delete offer's information
@@ -230,16 +265,16 @@ contract JamP2PTrading is JamMarketplaceHelpers {
             (bool success, ) = payable(msg.sender).call{value: offer.amount}(
                 ""
             );
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         } else {
             bool success = IERC20(offer.currency).transfer(
                 msg.sender,
                 offer.amount
             );
-            require(success, "JamP2PTrading: return money failed");
+            require(success, "JamP2PTrading1155: return money failed");
         }
 
-        emit OfferCancelled(msg.sender, nftAddress, tokenId);
+        emit OfferCancelled(msg.sender, nftAddress, tokenId, offer.quantity);
     }
 
     /**
@@ -256,20 +291,22 @@ contract JamP2PTrading is JamMarketplaceHelpers {
     ) external nonReentrant {
         // Check accepting conditions
         Offer memory offer = getSpecificOffer(offeror, nftAddress, tokenId);
-        require(offer.offeror == offeror, "JamP2PTrading: no offer found");
+        require(offer.offeror == offeror, "JamP2PTrading1155: no offer found");
 
-        address owner_ = IERC721(nftAddress).ownerOf(tokenId);
-
-        // Cancel the auction if the NFT is on marketplace
-        if (JamMarketplaceHub(_marketplaceHub).isMarketplace(owner_)) {
-            JamMarketplaceHelpers marketplace = JamMarketplaceHelpers(owner_);
-            if (marketplace.isAuctionCancelable(nftAddress, tokenId))
-                marketplace.cancelAuction(nftAddress, tokenId);
-        }
+        require(
+            IERC1155(nftAddress).balanceOf(msg.sender, tokenId) >=
+                offer.quantity,
+            "JamP2PTrading1155: not enough NFTs to accept"
+        );
 
         // Sell it to the offeror
-        owner_ = IERC721(nftAddress).ownerOf(tokenId);
-        IERC721(nftAddress).transferFrom(owner_, offeror, tokenId);
+        IERC1155(nftAddress).safeTransferFrom(
+            msg.sender,
+            offeror,
+            tokenId,
+            offer.quantity,
+            abi.encodePacked("Accept offer")
+        );
 
         // Compute auctioneer cut and royalty cut then return proceeds to seller
         if (offer.amount > 0)
@@ -285,6 +322,7 @@ contract JamP2PTrading is JamMarketplaceHelpers {
             msg.sender,
             nftAddress,
             tokenId,
+            offer.quantity,
             offer.currency,
             offer.amount
         );
