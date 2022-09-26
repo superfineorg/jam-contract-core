@@ -22,7 +22,12 @@
     "chai": "^4.3.6",
     "crypto": "^1.0.1",
     "eccrypto": "^1.1.6",
+    "eth-crypto": "^2.3.0",
     "fs": "^0.0.1-security",
+    "hardhat-contract-sizer": "^2.5.1",
+    "rimraf": "^3.0.2",
+    "sol-straightener": "^1.1.1",
+    "solc": "0.4.25",
     "web3-utils": "^1.7.1"
   },
   "devDependencies": {
