@@ -12,6 +12,7 @@ const BSC_PROVIDER = process.env.BSC_PROVIDER;
 const JAMCHAIN_PROVIDER = process.env.JAMCHAIN_PROVIDER;
 const RINKEBY_PROVIDER = process.env.RINKEBY_PROVIDER;
 const GOERLI_PROVIDER = process.env.GOERLI_PROVIDER;
+const SEPOLIA_PROVIDER = process.env.SEPOLIA_PROVIDER;
 const BSC_TESTNET_PROVIDER = process.env.BSC_TESTNET_PROVIDER;
 const JAMCHAIN_TESTNET_PROVIDER = process.env.JAMCHAIN_TESTNET_PROVIDER;
 const POLYGON_TESTNET_PROVIDER = process.env.POLYGON_TESTNET_PROVIDER;
@@ -38,37 +39,43 @@ module.exports = {
       url: ETHEREUM_PROVIDER,
       chainId: 1,
       gas: 8000000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     bsc: {
       url: BSC_PROVIDER,
       chainId: 56,
       gas: 8000000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     jamchain: {
       url: JAMCHAIN_PROVIDER,
       chainId: 2077,
       gas: 5500000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     rinkeby: {
       url: RINKEBY_PROVIDER,
       chainId: 4,
       gas: 5500000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     goerli: {
       url: GOERLI_PROVIDER,
       chainId: 5,
       gas: 5500000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
+    },
+    sepolia: {
+      url: SEPOLIA_PROVIDER,
+      chainId: 11155111,
+      gas: 5500000,
+      accounts: { mnemonic: MNEMONIC }
     },
     bsctestnet: {
       url: BSC_TESTNET_PROVIDER,
       chainId: 97,
       gas: 8000000,
-      accounts: [PRIVATE_KEY],
+      accounts: { mnemonic: MNEMONIC },
       networkCheckTimeout: 1000000000,
       timeoutBlocks: 200000000,
       skipDryRun: true,
@@ -77,13 +84,13 @@ module.exports = {
       url: JAMCHAIN_TESTNET_PROVIDER,
       chainId: 2710,
       gas: 5500000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     polygontestnet: {
       url: POLYGON_TESTNET_PROVIDER,
       chainId: 80001,
       gas: 5500000,
-      accounts: [PRIVATE_KEY]
+      accounts: { mnemonic: MNEMONIC }
     },
     hardhat: {},
     localhost: {
@@ -94,10 +101,10 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY
+    apiKey: POLYGON_API_KEY
   },
   solidity: {
-    version: "0.8.6",
+    version: "0.8.15",
     settings: {
       optimizer: {
         enabled: true,
