@@ -50,3 +50,4 @@ cache
 compile
 contracts-info
 openzeppelin
+flatten
