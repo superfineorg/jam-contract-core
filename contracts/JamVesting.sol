@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -196,31 +196,13 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
         uint256[] memory milestoneUnlockPercentages
     ) external onlyOperator {
         require(
-            metadatas.length == startRegistrations.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == endRegistrations.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == initialAmounts.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == tgeUnlockPercentages.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == unlockMoments.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == unlockDistances.length,
-            "JamVesting: lengths mismatch"
-        );
-        require(
-            metadatas.length == milestoneUnlockPercentages.length,
+            metadatas.length == startRegistrations.length &&
+                metadatas.length == endRegistrations.length &&
+                metadatas.length == initialAmounts.length &&
+                metadatas.length == tgeUnlockPercentages.length &&
+                metadatas.length == unlockMoments.length &&
+                metadatas.length == unlockDistances.length &&
+                metadatas.length == milestoneUnlockPercentages.length,
             "JamVesting: lengths mismatch"
         );
         if (TGE == 0) {

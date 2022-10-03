@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.15;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -380,11 +380,8 @@ contract JamNFTStaking is
         uint256[] memory quantities
     ) external whenNotPaused nonReentrant {
         require(
-            nftAddresses.length == tokenIds.length,
-            "JamNFTStaking: lengths mismatch"
-        );
-        require(
-            nftAddresses.length == quantities.length,
+            nftAddresses.length == tokenIds.length &&
+                nftAddresses.length == quantities.length,
             "JamNFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)
@@ -397,11 +394,8 @@ contract JamNFTStaking is
         uint256[] memory quantities
     ) external whenNotPaused nonReentrant {
         require(
-            nftAddresses.length == tokenIds.length,
-            "JamNFTStaking: lengths mismatch"
-        );
-        require(
-            nftAddresses.length == quantities.length,
+            nftAddresses.length == tokenIds.length &&
+                nftAddresses.length == quantities.length,
             "JamNFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)

@@ -39,7 +39,7 @@ before("Deploy JamNFTStaking contract and simple NFT contracts", async () => {
     deployer.address,
     "Gamejam Awesome NFT",
     "JamNFT",
-    "https://xxx.com/"
+    "https://gamejam.com/nft/"
   );
   await this.nft721Contract.deployed();
 
@@ -277,7 +277,11 @@ describe("Test NFT staking program", () => {
         .attach(this.nftStakingContract.address)
         .unstake([this.nft721Contract.address], [1], [1])
     ).to.be.revertedWith("JamNFTStaking: NFT not unlocked yet");
-    await sleep(9000);
+
+    // 9 seconds later...
+    await hre.network.provider.request({ method: "evm_increaseTime", params: [9] });
+    await hre.network.provider.request({ method: "evm_mine", params: [] });
+
     await this.nftStakingFactory
       .connect(this.participant)
       .attach(this.nftStakingContract.address)
@@ -373,8 +377,4 @@ describe("Test NFT staking program", () => {
   });
 });
 
-let sleep = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms));
-};
-
-// Run: npx hardhat test test/test-nft-staking.js
+// Run: npx hardhat test test/nft-staking.js

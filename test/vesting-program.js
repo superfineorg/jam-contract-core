@@ -67,14 +67,15 @@ describe("Test JamVesting contract", () => {
   });
 
   it("Create 8 vesting programs", async () => {
-    let start = Math.floor(Date.now() / 1000) - 5;
-    let end = Math.floor(Date.now() / 1000) + 30;
-    let unlockMoment = Math.floor(Date.now() / 1000) + 3;
+    let currentTime = await now();
+    let start = currentTime - 5;
+    let end = currentTime + 30;
+    let unlockMoment = currentTime + 3;
     await this.vestingFactory
       .connect(this.operator)
       .attach(this.vestingContract.address)
       .createPrograms(
-        Math.floor(Date.now() / 1000) - 1,
+        currentTime - 1,
         [
           "https Seed Sale",
           "https Strategic Partners Sales",
@@ -165,7 +166,7 @@ describe("Test JamVesting contract", () => {
         .connect(this.operator)
         .attach(this.vestingContract.address)
         .removeParticipant(this.participants[4].address, 4)
-    ).to.be.revertedWith("Cannot remove an investor");
+    ).to.be.revertedWith("JamVesting: cannot remove an investor");
   });
 
   it("Remove a non-investor participant", async () => {
@@ -178,7 +179,7 @@ describe("Test JamVesting contract", () => {
         .connect(this.operator)
         .attach(this.vestingContract.address)
         .removeParticipant(this.participants[3].address, 3)
-    ).to.be.revertedWith("Participant already removed");
+    ).to.be.revertedWith("JamVesting: participant already removed");
     let allPrograms = await this.vestingContract.getProgramsInfo();
     expect(allPrograms[3].participants.length).to.equal(0);
   });
@@ -208,7 +209,10 @@ describe("Test JamVesting contract", () => {
   });
 
   it("Claim vesting tokens", async () => {
-    await sleep(12000);
+    // 12 seconds later...
+    await hre.network.provider.request({ method: "evm_increaseTime", params: [12] });
+    await hre.network.provider.request({ method: "evm_mine", params: [] });
+
     await this.vestingFactory
       .connect(this.participants[0])
       .attach(this.vestingContract.address)
@@ -227,8 +231,10 @@ describe("Test JamVesting contract", () => {
   });
 });
 
-let sleep = ms => {
-  return new Promise(resolve => setTimeout(resolve, ms));
+let now = async () => {
+  let blockNumber = await hre.network.provider.request({ method: "eth_blockNumber", params: [] });
+  let block = await hre.network.provider.request({ method: "eth_getBlockByNumber", params: [blockNumber, false] });
+  return parseInt(block.timestamp || 0, 16);
 };
 
-// Run: npx hardhat test test/test-vesting-program.js
+// Run: npx hardhat test test/vesting-program.js

@@ -124,7 +124,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         string memory campaignId,
         Asset[] memory assets,
         uint256 startingTime
-    ) external payable {
+    ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
 
         // Check if campaign exists
@@ -195,7 +195,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         string memory campaignId,
         Asset[] memory assets,
         uint256 startingTime
-    ) external payable {
+    ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
 
         // Check campaign ownership

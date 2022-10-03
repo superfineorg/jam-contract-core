@@ -48,3 +48,5 @@ cache
 
 # ABIs and BINs
 compile
+contracts-info
+openzeppelin
