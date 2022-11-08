@@ -96,10 +96,10 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         return numRequiredBatches * _feePerBatch;
     }
 
-    function setOperators(address[] memory operators, bool[] memory isOperators)
-        external
-        onlyOwner
-    {
+    function setOperators(
+        address[] calldata operators,
+        bool[] calldata isOperators
+    ) external onlyOwner {
         require(
             operators.length == isOperators.length,
             "PlaylinkAirdrop: lengths mismatch"
@@ -121,8 +121,8 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     }
 
     function createAirdropCampaign(
-        string memory campaignId,
-        Asset[] memory assets,
+        string calldata campaignId,
+        Asset[] calldata assets,
         uint256 startingTime
     ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
@@ -154,7 +154,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < assets.length; i++) {
             Asset memory asset = assets[i];
             require(
-                uint256(asset.assetType) <= 3,
+                uint256(asset.assetType) <= 2,
                 "PlaylinkAirdrop: invalid asset type"
             );
             if (asset.assetType == AssetType.ERC20)
@@ -192,8 +192,8 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     }
 
     function updateCampaign(
-        string memory campaignId,
-        Asset[] memory assets,
+        string calldata campaignId,
+        Asset[] calldata assets,
         uint256 startingTime
     ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
@@ -233,7 +233,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < assets.length; i++) {
             Asset memory asset = assets[i];
             require(
-                uint256(asset.assetType) <= 3,
+                uint256(asset.assetType) <= 2,
                 "PlaylinkAirdrop: invalid asset type"
             );
             if (asset.assetType == AssetType.ERC20)
@@ -248,7 +248,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
                 );
         }
 
-        // Update campaign assets and airdrop fee
+        // Update campaign info
         uint256 totalAvailableAssets = 0;
         for (uint256 j = 0; j < assets.length; j++)
             totalAvailableAssets += assets[j].availableAmount;
@@ -270,9 +270,9 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     }
 
     function airdrop(
-        string memory campaignId,
-        uint256[] memory assetIndexes,
-        address[] memory recipients
+        string calldata campaignId,
+        uint256[] calldata assetIndexes,
+        address[] calldata recipients
     ) external onlyOperators nonReentrant {
         require(
             _campaignById[campaignId].creator != address(0),
@@ -293,8 +293,16 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         );
         Asset[] memory airdroppedAssets = new Asset[](assetIndexes.length);
         for (uint256 i = 0; i < assetIndexes.length; i++) {
+            require(
+                assetIndexes[i] < campaign.assets.length,
+                "PlaylinkAirdrop: index out of bound"
+            );
             airdroppedAssets[i] = campaign.assets[assetIndexes[i]];
             Asset storage asset = campaign.assets[assetIndexes[i]];
+            require(
+                asset.availableAmount > 0,
+                "PlaylinkAirdrop: re-airdrop is not allowed"
+            );
             if (asset.assetType == AssetType.ERC20) {
                 bool success = IERC20(asset.assetAddress).transferFrom(
                     campaign.creator,
