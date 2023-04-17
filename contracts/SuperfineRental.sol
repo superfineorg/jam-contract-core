@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./interfaces/IOracle.sol";
 
-contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
+contract SuperfineRental is IRentalContract, HasNoEther, ReentrancyGuard {
     address private backendAddr;
 
     address private oracleContract;
@@ -36,10 +36,13 @@ contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
 
     receive() external payable {}
 
-    /* ======== Config JamRental ======== */
+    /* ======== Config SuperfineRental ======== */
 
     function setOwnerCut(uint256 _ownerCut) external onlyOwner {
-        require(_ownerCut <= 10000, "JamRental: owner cut cannot exceed 100%");
+        require(
+            _ownerCut <= 10000,
+            "SuperfineRental: owner cut cannot exceed 100%"
+        );
         ownerCut = _ownerCut;
     }
 
@@ -51,22 +54,19 @@ contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
         oracleContract = _oracleContract;
     }
 
-    function setSlippageTolerance(uint256 _slippageTolerance)
-        external
-        onlyOwner
-    {
+    function setSlippageTolerance(
+        uint256 _slippageTolerance
+    ) external onlyOwner {
         slippageTolerance = _slippageTolerance;
     }
 
-    /* ======== End Config JamRental ======== */
+    /* ======== End Config SuperfineRental ======== */
 
     /* ======== Internal function ======== */
 
-    function _getERC20Contract(address _erc20Address)
-        internal
-        pure
-        returns (IERC20)
-    {
+    function _getERC20Contract(
+        address _erc20Address
+    ) internal pure returns (IERC20) {
         IERC20 candidateContract = IERC20(_erc20Address);
         return candidateContract;
     }
@@ -153,23 +153,26 @@ contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount
     ) external payable override returns (bool) {
         if (paidToken == address(0)) {
-            require(msg.value >= amount, "JamRental: not enough balance");
+            require(msg.value >= amount, "SuperfineRental: not enough balance");
         }
         IOracle or = _getOracleContract();
         uint256 tokenRate = or.GetRate(paidToken);
-        require(tokenRate > 0, "JamRental: paid token is not support");
+        require(tokenRate > 0, "SuperfineRental: paid token is not support");
         uint256 totalBalanceUSD = amount / tokenRate;
         uint256 pricingPerDayUSD = viewNFTPricing(
             chainId,
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "JamRental: nft is not public for rent");
+        require(
+            pricingPerDayUSD > 0,
+            "SuperfineRental: nft is not public for rent"
+        );
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
         require(
             totalBalanceUSD * 10000 >= billAmount * (10000 - slippageTolerance),
-            "JamRental: out of slippage tolerance"
+            "SuperfineRental: out of slippage tolerance"
         );
         if (paidToken != address(0)) {
             // Transfer ERC20
@@ -271,7 +274,10 @@ contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
             contractAddress,
             tokenId
         );
-        require(pricingPerDayUSD > 0, "JamRental: nft is not public for rent");
+        require(
+            pricingPerDayUSD > 0,
+            "SuperfineRental: nft is not public for rent"
+        );
 
         //check slippageTolerance
         uint256 billAmount = pricingPerDayUSD * rentedDay;
@@ -310,21 +316,24 @@ contract JamRental is IRentalContract, HasNoEther, ReentrancyGuard {
         uint256 amount = ownerProfit[msg.sender];
         (bool success, ) = payable(msg.sender).call{value: amount}("");
         ownerProfit[msg.sender] = ownerProfit[msg.sender] - amount;
-        require(success, "JamRental: transfer failed.");
+        require(success, "SuperfineRental: transfer failed.");
     }
 
     /* ======== End User Query function ======== */
 
     /* ======== Modfier ========= */
     modifier onlyBackend() {
-        require(backendAddr == msg.sender, "JamRental: only backend call");
+        require(
+            backendAddr == msg.sender,
+            "SuperfineRental: only backend call"
+        );
         _;
     }
 
     modifier onlyNewReceiptId(string memory receiptId) {
         require(
             receiptLog[receiptId] == 0,
-            "JamRental: only new receiptId accepted"
+            "SuperfineRental: only new receiptId accepted"
         );
         _;
     }

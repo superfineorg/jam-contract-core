@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 
 import "./tokens/ERC20/SimpleERC20.sol";
 
-contract JamERC20Factory {
+contract SuperfineERC20Factory {
     SimpleERC20[] private fungibleTokens;
 
     event CreateERC20(
@@ -39,7 +39,9 @@ contract JamERC20Factory {
         );
     }
 
-    function getERC20(uint256 _index)
+    function getERC20(
+        uint256 _index
+    )
         public
         view
         returns (

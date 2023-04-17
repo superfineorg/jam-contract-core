@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-contract PlaylinkClaim is Ownable {
+contract SuperfineClaim is Ownable {
     using ECDSA for bytes32;
 
     enum AssetType {
@@ -42,7 +42,7 @@ contract PlaylinkClaim is Ownable {
     ) external onlyOwner {
         require(
             operators.length == isOperators.length,
-            "PlaylinkClaim: lengths mismatch"
+            "SuperfineClaim: lengths mismatch"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
@@ -61,24 +61,24 @@ contract PlaylinkClaim is Ownable {
             assets,
             signature
         );
-        require(_operators[signer], "PlaylinkClaim: invalid signer");
+        require(_operators[signer], "SuperfineClaim: invalid signer");
 
         // Claim assets
         for (uint256 i = 0; i < assets.length; i++) {
             Asset memory asset = assets[i];
             _claimedAssets[msg.sender][campaignId].push(asset);
             if (asset.assetType == AssetType.ERC20) {
-                require(asset.assetId == 0, "PlaylinkClaim: invalid asset ID");
+                require(asset.assetId == 0, "SuperfineClaim: invalid asset ID");
                 bool success = IERC20(asset.assetAddress).transferFrom(
                     campaignCreator,
                     msg.sender,
                     asset.amount
                 );
-                require(success, "PlaylinkClaim: failed to claim");
+                require(success, "SuperfineClaim: failed to claim");
             } else if (asset.assetType == AssetType.ERC721) {
                 require(
                     asset.amount == 1,
-                    "PlaylinkClaim: invalid asset amount"
+                    "SuperfineClaim: invalid asset amount"
                 );
                 IERC721(asset.assetAddress).safeTransferFrom(
                     campaignCreator,

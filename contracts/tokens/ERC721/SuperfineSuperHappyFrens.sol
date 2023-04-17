@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "./ERC721Tradable.sol";
 
-contract JamNFT721 is
+contract SuperfineSuperHappyFrens is
     Context,
     AccessControlEnumerable,
     ERC721Burnable,
@@ -28,24 +28,12 @@ contract JamNFT721 is
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
     uint256 public nftLimit;
-
-    Counters.Counter private _nextTokenId;
     string private _baseTokenURI;
-
-    // Array with all token ids, used for enumeration
-    uint256[] private _allTokens;
-
-    // Mapping from an owner address and the token index to the token ID
+    uint256[] private _allTokens; // Array with all token ids, used for enumeration
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
-
-    // Mapping from token ID to index of the owner tokens list
-    mapping(uint256 => uint256) private _ownedTokensIndex;
-
-    // Mapping from token ID to position in the allTokens array
-    mapping(uint256 => uint256) private _allTokensIndex;
-
-    // Mapping from token ID to its URI
-    mapping(uint256 => string) private _tokenURIs;
+    mapping(uint256 => uint256) private _ownedTokensIndex; // Mapping from token ID to index of the owner tokens list
+    mapping(uint256 => uint256) private _allTokensIndex; // Mapping from token id to position in the allTokens array
+    Counters.Counter private _nextTokenId;
 
     constructor(
         string memory name_,
@@ -70,12 +58,10 @@ contract JamNFT721 is
         return ERC721Tradable._msgSender();
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override(ERC721, ERC721Tradable)
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override(ERC721, ERC721Tradable) returns (bool) {
         return ERC721Tradable.isApprovedForAll(owner, operator);
     }
 
@@ -83,14 +69,10 @@ contract JamNFT721 is
         return _baseTokenURI;
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721Tradable)
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721Tradable) returns (string memory) {
         require(_exists(tokenId), "JamNFT721: token does not exist");
-        if (bytes(_tokenURIs[tokenId]).length != 0) return _tokenURIs[tokenId];
         return
             string(
                 abi.encodePacked(
@@ -101,12 +83,10 @@ contract JamNFT721 is
             );
     }
 
-    function tokenOfOwnerByIndex(address owner, uint256 index)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function tokenOfOwnerByIndex(
+        address owner,
+        uint256 index
+    ) public view virtual returns (uint256) {
         require(
             index < ERC721.balanceOf(owner),
             "JamNFT721: owner index out of bounds"
@@ -124,19 +104,12 @@ contract JamNFT721 is
     }
 
     function getOwnedTokens(
-        address user,
-        uint256 fromIndex,
-        uint256 toIndex
+        address user
     ) external view returns (TokenInfo[] memory) {
-        if (balanceOf(user) == 0) return new TokenInfo[](0);
-        uint256 lastIndex = toIndex;
-        if (lastIndex >= balanceOf(user)) lastIndex = balanceOf(user) - 1;
-        require(fromIndex <= lastIndex, "JamNFT721: invalid query range");
-        uint256 numNFTs = lastIndex - fromIndex + 1;
-        TokenInfo[] memory ownedTokens = new TokenInfo[](numNFTs);
-        for (uint256 i = fromIndex; i <= lastIndex; i++) {
+        TokenInfo[] memory ownedTokens = new TokenInfo[](balanceOf(user));
+        for (uint256 i = 0; i < balanceOf(user); i++) {
             uint256 tokenId = tokenOfOwnerByIndex(user, i);
-            ownedTokens[i - fromIndex] = TokenInfo(tokenId, tokenURI(tokenId));
+            ownedTokens[i] = TokenInfo(tokenId, tokenURI(tokenId));
         }
         return ownedTokens;
     }
@@ -148,14 +121,13 @@ contract JamNFT721 is
     function mint(
         address to,
         uint256 tokenId,
-        string memory uri
-    ) public {
+        string memory data
+    ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
         require(tokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
-        _tokenURIs[tokenId] = uri;
         _safeMint(to, tokenId);
     }
 
@@ -164,37 +136,14 @@ contract JamNFT721 is
             hasRole(MINTER_ROLE, _msgSender()),
             "JamNFT721: must have minter role to mint"
         );
+        require(
+            _nextTokenId.current() < nftLimit,
+            "JamNFT721: Maximum NFTs minted"
+        );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
         _nextTokenId.increment();
-        require(currentTokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
         _safeMint(to, currentTokenId);
-    }
-
-    function mintBulk(
-        address[] memory recipients,
-        uint256[] memory tokenIds,
-        string[] memory uris
-    ) external {
-        require(
-            hasRole(MINTER_ROLE, _msgSender()),
-            "JamNFT721: must have minter role to mint"
-        );
-        require(
-            recipients.length == tokenIds.length,
-            "JamNFT721: lengths mismatch"
-        );
-        require(
-            recipients.length == uris.length,
-            "JamNFT721: lengths mismatch"
-        );
-        for (uint256 i = 0; i < recipients.length; i++)
-            mint(recipients[i], tokenIds[i], uris[i]);
-    }
-
-    function burn(uint256 tokenId) public override {
-        delete _tokenURIs[tokenId];
-        super.burn(tokenId);
     }
 
     function pause() public virtual {
@@ -269,9 +218,10 @@ contract JamNFT721 is
      * @param from address representing the previous owner of the given token ID
      * @param tokenId uint256 ID of the token to be removed from the tokens list of the given address
      */
-    function _removeTokenFromOwnerEnumeration(address from, uint256 tokenId)
-        private
-    {
+    function _removeTokenFromOwnerEnumeration(
+        address from,
+        uint256 tokenId
+    ) private {
         // To prevent a gap in from's tokens array, we store the last token in the index of the token to delete, and
         // then delete the last slot (swap and pop).
 
@@ -316,7 +266,9 @@ contract JamNFT721 is
         _allTokens.pop();
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual

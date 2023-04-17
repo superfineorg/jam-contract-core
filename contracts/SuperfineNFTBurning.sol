@@ -7,7 +7,7 @@ import "./tokens/ERC1155/GameNFT1155.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract GameNFTBurning is Ownable {
+contract SuperfineNFTBurning is Ownable {
     mapping(address => bool) private _operators;
 
     event Erc721BurnedIntoGames(
@@ -29,18 +29,18 @@ contract GameNFTBurning is Ownable {
     modifier onlyOperators() {
         require(
             _operators[msg.sender],
-            "GameNFTBurning: caller is not operator"
+            "SuperfineNFTBurning: caller is not operator"
         );
         _;
     }
 
-    function setOperators(address[] memory operators, bool[] memory isOperators)
-        external
-        onlyOwner
-    {
+    function setOperators(
+        address[] memory operators,
+        bool[] memory isOperators
+    ) external onlyOwner {
         require(
             operators.length == isOperators.length,
-            "GameNFTBurning: lengths mismatch"
+            "SuperfineNFTBurning: lengths mismatch"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
@@ -52,7 +52,7 @@ contract GameNFTBurning is Ownable {
     ) external onlyOperators {
         require(
             nftAddresses.length == tokenIds.length,
-            "GameNFTBurning: lengths mismatch"
+            "SuperfineNFTBurning: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++) {
             bool success = ERC165Checker.supportsERC165(nftAddresses[i]);
@@ -60,7 +60,7 @@ contract GameNFTBurning is Ownable {
                 success = IERC165(nftAddresses[i]).supportsInterface(
                     type(IERC721).interfaceId
                 );
-            require(success, "GameNFTBurning: invalid ERC721 address");
+            require(success, "SuperfineNFTBurning: invalid ERC721 address");
             GameNFT721 nftContract = GameNFT721(nftAddresses[i]);
             address currentOwner = nftContract.ownerOf(tokenIds[i]);
             nftContract.burn(tokenIds[i]);
@@ -82,7 +82,7 @@ contract GameNFTBurning is Ownable {
             owners.length == nftAddresses.length &&
                 owners.length == tokenIds.length &&
                 owners.length == quantities.length,
-            "GameNFTBurning: lengths mismatch"
+            "SuperfineNFTBurning: lengths mismatch"
         );
         for (uint256 i = 0; i < owners.length; i++) {
             bool success = ERC165Checker.supportsERC165(nftAddresses[i]);
@@ -90,7 +90,7 @@ contract GameNFTBurning is Ownable {
                 success = IERC165(nftAddresses[i]).supportsInterface(
                     type(IERC1155).interfaceId
                 );
-            require(success, "GameNFTBurning: invalid ERC1155 address");
+            require(success, "SuperfineNFTBurning: invalid ERC1155 address");
             GameNFT1155(nftAddresses[i]).burnBatch(
                 owners[i],
                 tokenIds[i],

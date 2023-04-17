@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./utils/HasNoEther.sol";
 import "./utils/DateTime.sol";
 
-contract JamDistribute is ReentrancyGuard, HasNoEther {
+contract SuperfineDistribute is ReentrancyGuard, HasNoEther {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
@@ -33,11 +33,10 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     }
 
     /* ======== Native Function ========= */
-    function viewReward(address tokenAddr, address addr)
-        public
-        view
-        returns (uint256)
-    {
+    function viewReward(
+        address tokenAddr,
+        address addr
+    ) public view returns (uint256) {
         return rewards[tokenAddr][addr];
     }
 
@@ -54,7 +53,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     {
         require(
             addrs.length == amount.length,
-            "JamDistribute: addrs and amount does not same length"
+            "SuperfineDistribute: addrs and amount does not same length"
         );
         uint256 addedRewardAmount = _calSumAmount(amount);
         uint256 today = DateTime.toDateUnit(block.timestamp);
@@ -85,10 +84,10 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
     }
 
-    function updateSupportedToken(address tokenAddr, bool ok)
-        external
-        onlyOwner
-    {
+    function updateSupportedToken(
+        address tokenAddr,
+        bool ok
+    ) external onlyOwner {
         supportedToken[tokenAddr] = ok;
         if (ok) {
             emit AddToken(tokenAddr);
@@ -97,17 +96,15 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
     }
 
-    function getReward(address tokenAddr)
-        external
-        haveReward(tokenAddr)
-        onlySupportedToken(tokenAddr)
-    {
+    function getReward(
+        address tokenAddr
+    ) external haveReward(tokenAddr) onlySupportedToken(tokenAddr) {
         uint256 rewardAmount = rewards[tokenAddr][msg.sender];
         if (tokenAddr == address(0)) {
             (bool success, ) = payable(msg.sender).call{value: rewardAmount}(
                 ""
             );
-            require(success, "JamDistribute: transfer failed.");
+            require(success, "SuperfineDistribute: transfer failed.");
         } else {
             IERC20(tokenAddr).safeTransfer(msg.sender, rewardAmount);
         }
@@ -117,11 +114,9 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         totalRewards[tokenAddr] = totalRewards[tokenAddr].sub(rewardAmount);
     }
 
-    function _calSumAmount(uint256[] memory amount)
-        private
-        pure
-        returns (uint256)
-    {
+    function _calSumAmount(
+        uint256[] memory amount
+    ) private pure returns (uint256) {
         uint256 total = 0;
         for (uint256 i = 0; i < amount.length; i++) {
             total = total.add(amount[i]);
@@ -138,13 +133,16 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     modifier onlyDistributor(address _token) {
         require(
             allowedDistributors[_token][msg.sender],
-            "JamDistribute: only distributor can take this action"
+            "SuperfineDistribute: only distributor can take this action"
         );
         _;
     }
 
     modifier onlySupportedToken(address _token) {
-        require(supportedToken[_token], "JamDistribute: unsupported token");
+        require(
+            supportedToken[_token],
+            "SuperfineDistribute: unsupported token"
+        );
         _;
     }
 
@@ -158,7 +156,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
         }
         require(
             totalRewards[tokenAddr].add(total) <= thisAccountBalance,
-            "JamDistribute: balance not enough"
+            "SuperfineDistribute: balance not enough"
         );
         _;
     }
@@ -166,7 +164,7 @@ contract JamDistribute is ReentrancyGuard, HasNoEther {
     modifier haveReward(address tokenAddr) {
         require(
             rewards[tokenAddr][msg.sender] > 0,
-            "JamDistribute: you don't have any reward"
+            "SuperfineDistribute: you don't have any reward"
         );
         _;
     }

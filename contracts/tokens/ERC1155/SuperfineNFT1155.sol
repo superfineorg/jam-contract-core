@@ -5,7 +5,7 @@ pragma solidity ^0.8.15;
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC1155/presets/ERC1155PresetMinterPauser.sol";
 
-contract JamNFT1155 is ERC1155PresetMinterPauser {
+contract SuperfineNFT1155 is ERC1155PresetMinterPauser {
     using Strings for uint256;
 
     struct TokenInfo {
@@ -22,7 +22,7 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
     function uri(uint256 tokenId) public view override returns (string memory) {
         require(
             _isTokenIdMinted[tokenId],
-            "JamNFT1155: URI query for non-existent token"
+            "SuperfineNFT1155: URI query for non-existent token"
         );
         return
             string(
@@ -34,11 +34,9 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
             );
     }
 
-    function getAllOwnedTokens(address user)
-        external
-        view
-        returns (TokenInfo[] memory)
-    {
+    function getAllOwnedTokens(
+        address user
+    ) external view returns (TokenInfo[] memory) {
         if (_mintedTokenIds.length == 0) return new TokenInfo[](0);
         return getOwnedTokens(user, 0, _mintedTokenIds.length - 1);
     }
@@ -55,7 +53,10 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
         uint256 lastIndex = toIndex;
         if (lastIndex >= _mintedTokenIds.length)
             lastIndex = _mintedTokenIds.length - 1;
-        require(fromIndex <= lastIndex, "JamNFT1155: invalid query range");
+        require(
+            fromIndex <= lastIndex,
+            "SuperfineNFT1155: invalid query range"
+        );
 
         // Get the number of owned ERC1155 NFTs
         uint256 numOwnedNFTs = 0;
@@ -82,7 +83,7 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
     function setBaseTokenURI(string memory baseTokenURI_) external {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "JamNFT1155: caller is not an admin"
+            "SuperfineNFT1155: caller is not an admin"
         );
         _setURI(baseTokenURI_);
     }
@@ -97,7 +98,7 @@ contract JamNFT1155 is ERC1155PresetMinterPauser {
     ) internal override {
         require(
             tokenIds.length == quantities.length,
-            "JamNFT1155: lengths mismatch"
+            "SuperfineNFT1155: lengths mismatch"
         );
         if (from == address(0))
             for (uint256 i = 0; i < tokenIds.length; i++)

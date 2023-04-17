@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "@openzeppelin/contracts/token/ERC1155/ERC1155.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract JamNFT1155Airdrop is ERC1155, AccessControl {
+contract SuperfineNFT1155Airdrop is ERC1155, AccessControl {
     using Strings for uint256;
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
@@ -28,7 +28,7 @@ contract JamNFT1155Airdrop is ERC1155, AccessControl {
     function setBaseTokenURI(string memory baseTokenURI_) external {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
-            "JamNFT1155Airdrop: caller is not an admin"
+            "SuperfineNFT1155Airdrop: caller is not an admin"
         );
 
         _setURI(baseTokenURI_);
@@ -42,7 +42,7 @@ contract JamNFT1155Airdrop is ERC1155, AccessControl {
     ) external {
         require(
             hasRole(MINTER_ROLE, msg.sender),
-            "JamNFT1155Airdrop: must have minter role to mint"
+            "SuperfineNFT1155Airdrop: must have minter role to mint"
         );
         _mint(to, id, quantity, data);
     }
@@ -55,18 +55,14 @@ contract JamNFT1155Airdrop is ERC1155, AccessControl {
     ) external {
         require(
             hasRole(MINTER_ROLE, msg.sender),
-            "JamNFT1155Airdrop: must have minter role to mint"
+            "SuperfineNFT1155Airdrop: must have minter role to mint"
         );
         _mintBatch(to, ids, quantities, data);
     }
 
-    function supportsInterface(bytes4 interfaceId)
-        public
-        view
-        virtual
-        override(ERC1155, AccessControl)
-        returns (bool)
-    {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view virtual override(ERC1155, AccessControl) returns (bool) {
         return
             ERC1155.supportsInterface(interfaceId) ||
             AccessControl.supportsInterface(interfaceId);

@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
-contract JamVesting is Ownable, Pausable, ReentrancyGuard {
+contract SuperfineVesting is Ownable, Pausable, ReentrancyGuard {
     struct Program {
         uint256 id;
         string metadata;
@@ -65,7 +65,10 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
     receive() external payable {}
 
     modifier onlyOperator() {
-        require(_operators[msg.sender], "JamVesting: caller is not operator");
+        require(
+            _operators[msg.sender],
+            "SuperfineVesting: caller is not operator"
+        );
         _;
     }
 
@@ -77,46 +80,39 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
         return _allPrograms;
     }
 
-    function getVestingAmount(address participant, uint256 programId)
-        external
-        view
-        returns (uint256)
-    {
+    function getVestingAmount(
+        address participant,
+        uint256 programId
+    ) external view returns (uint256) {
         return _vestingInfoOf[participant].totalAtProgram[programId];
     }
 
-    function getTotalVestingAmount(address participant)
-        external
-        view
-        returns (uint256)
-    {
+    function getTotalVestingAmount(
+        address participant
+    ) external view returns (uint256) {
         uint256 totalVestingAmount = 0;
         for (uint256 i = 0; i < _allPrograms.length; i++)
             totalVestingAmount += _vestingInfoOf[participant].totalAtProgram[i];
         return totalVestingAmount;
     }
 
-    function getClaimedAmount(address participant, uint256 programId)
-        external
-        view
-        returns (uint256)
-    {
+    function getClaimedAmount(
+        address participant,
+        uint256 programId
+    ) external view returns (uint256) {
         return _vestingInfoOf[participant].claimedAtProgram[programId];
     }
 
-    function getTotalClaimedAmount(address participant)
-        external
-        view
-        returns (uint256)
-    {
+    function getTotalClaimedAmount(
+        address participant
+    ) external view returns (uint256) {
         return _vestingInfoOf[participant].totalClaimedAmount;
     }
 
-    function getClaimableAmount(address participant, uint256 programId)
-        public
-        view
-        returns (uint256)
-    {
+    function getClaimableAmount(
+        address participant,
+        uint256 programId
+    ) public view returns (uint256) {
         if (programId >= _allPrograms.length) return 0;
         if (TGE == 0) return 0;
         uint256 programUnlockedAmount = 0;
@@ -150,36 +146,34 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
             _vestingInfoOf[participant].claimedAtProgram[programId];
     }
 
-    function getTotalClaimableAmount(address participant)
-        external
-        view
-        returns (uint256)
-    {
+    function getTotalClaimableAmount(
+        address participant
+    ) external view returns (uint256) {
         uint256 totalClaimableAmount = 0;
         for (uint256 i = 0; i < _allPrograms.length; i++)
             totalClaimableAmount += getClaimableAmount(participant, i);
         return totalClaimableAmount;
     }
 
-    function setOperators(address[] memory operators, bool[] memory isOperators)
-        external
-        onlyOwner
-    {
+    function setOperators(
+        address[] memory operators,
+        bool[] memory isOperators
+    ) external onlyOwner {
         require(
             operators.length == isOperators.length,
-            "JamVesting: lengths mismatch"
+            "SuperfineVesting: lengths mismatch"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
     }
 
-    function updateMetadata(uint256 programId, string calldata newMetadata)
-        external
-        onlyOperator
-    {
+    function updateMetadata(
+        uint256 programId,
+        string calldata newMetadata
+    ) external onlyOperator {
         require(
             programId < _allPrograms.length,
-            "JamVesting: program does not exist"
+            "SuperfineVesting: program does not exist"
         );
         _allPrograms[programId].metadata = newMetadata;
     }
@@ -203,22 +197,22 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
                 metadatas.length == unlockMoments.length &&
                 metadatas.length == unlockDistances.length &&
                 metadatas.length == milestoneUnlockPercentages.length,
-            "JamVesting: lengths mismatch"
+            "SuperfineVesting: lengths mismatch"
         );
         if (TGE == 0) {
-            require(TGE_ > 0, "JamVesting: TGE must be real moment");
+            require(TGE_ > 0, "SuperfineVesting: TGE must be real moment");
             TGE = TGE_;
-        } else require(TGE_ == TGE, "JamVesting: wrong TGE moment");
+        } else require(TGE_ == TGE, "SuperfineVesting: wrong TGE moment");
         address[] memory participants;
         for (uint256 i = 0; i < metadatas.length; i++) {
             require(
                 unlockMoments[i] >= TGE,
-                "JamVesting: TGE must not happen after unlock moment"
+                "SuperfineVesting: TGE must not happen after unlock moment"
             );
             require(
                 tgeUnlockPercentages[i] + milestoneUnlockPercentages[i] <=
                     10000,
-                "JamVesting: unlock percentages cannot exceed 100%"
+                "SuperfineVesting: unlock percentages cannot exceed 100%"
             );
             uint256 id = _allPrograms.length;
             _allPrograms.push(
@@ -257,24 +251,24 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
     ) external payable onlyOperator {
         require(
             participant != address(0),
-            "JamVesting: register the zero address"
+            "SuperfineVesting: register the zero address"
         );
         require(
             programId < _allPrograms.length,
-            "JamVesting: program does not exist"
+            "SuperfineVesting: program does not exist"
         );
         Program storage program = _allPrograms[programId];
         require(
             block.timestamp >= program.startRegistration,
-            "JamVesting: program is not available"
+            "SuperfineVesting: program is not available"
         );
         require(
             block.timestamp <= program.endRegistration,
-            "JamVesting: program is over"
+            "SuperfineVesting: program is over"
         );
         require(
             msg.value <= program.availableAmount,
-            "JamVesting: available amount not enough"
+            "SuperfineVesting: available amount not enough"
         );
         _vestingInfoOf[participant].isInvestorAtProgram[programId] = isInvestor;
         _vestingInfoOf[participant].totalAtProgram[programId] += msg.value;
@@ -289,17 +283,17 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
         emit ParticipantRegistered(participant, programId, msg.value);
     }
 
-    function removeParticipant(address participant, uint256 programId)
-        external
-        onlyOperator
-    {
+    function removeParticipant(
+        address participant,
+        uint256 programId
+    ) external onlyOperator {
         require(
             !_vestingInfoOf[participant].isInvestorAtProgram[programId],
-            "JamVesting: cannot remove an investor"
+            "SuperfineVesting: cannot remove an investor"
         );
         require(
             _vestingInfoOf[participant].removedMoment == 0,
-            "JamVesting: participant already removed"
+            "SuperfineVesting: participant already removed"
         );
         _vestingInfoOf[participant].removedMoment = block.timestamp;
         Program storage program = _allPrograms[programId];
@@ -320,7 +314,7 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
             programId
         ] += claimableAmount;
         (bool success, ) = payable(msg.sender).call{value: claimableAmount}("");
-        require(success, "JamVesting: claim tokens failed");
+        require(success, "SuperfineVesting: claim tokens failed");
         emit ClaimSuccessful(msg.sender, programId, claimableAmount);
     }
 
@@ -340,14 +334,12 @@ contract JamVesting is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    function emergencyWithdraw(address payable recipient)
-        external
-        onlyOwner
-        whenPaused
-    {
+    function emergencyWithdraw(
+        address payable recipient
+    ) external onlyOwner whenPaused {
         uint256 amount = address(this).balance;
         (bool success, ) = recipient.call{value: amount}("");
-        require(success, "JamVesting: emergency withdraw failed");
+        require(success, "SuperfineVesting: emergency withdraw failed");
         emit EmergencyWithdrawn(recipient, amount);
     }
 }

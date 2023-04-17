@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
+contract SuperfineFaucet is Ownable, ReentrancyGuard, Pausable {
     using SafeMath for uint256;
 
     uint256 public faucetAmount;
@@ -30,14 +30,12 @@ contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
         faucetInterval = faucetInterval_;
     }
 
-    function faucet(address[] memory recipients)
-        external
-        nonReentrant
-        whenNotPaused
-    {
+    function faucet(
+        address[] memory recipients
+    ) external nonReentrant whenNotPaused {
         require(
             address(this).balance > faucetAmount.mul(recipients.length),
-            "JamFaucet: not enough balance"
+            "SuperfineFaucet: not enough balance"
         );
         for (uint256 i = 0; i < recipients.length; i++)
             if (block.timestamp > lastFaucet[recipients[i]] + faucetInterval) {
@@ -45,7 +43,7 @@ contract JamFaucet is Ownable, ReentrancyGuard, Pausable {
                 (bool success, ) = payable(recipients[i]).call{
                     value: faucetAmount
                 }("");
-                require(success, "JamFaucet: faucet failed");
+                require(success, "SuperfineFaucet: faucet failed");
             }
     }
 

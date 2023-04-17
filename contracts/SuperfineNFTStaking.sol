@@ -10,9 +10,9 @@ import "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/introspection/ERC165Checker.sol";
-import "./tokens/ERC1155/JamNFT1155.sol";
+import "./tokens/ERC1155/SuperfineNFT1155.sol";
 
-contract JamNFTStaking is
+contract SuperfineNFTStaking is
     ERC721Holder,
     ERC1155Holder,
     Ownable,
@@ -95,16 +95,14 @@ contract JamNFTStaking is
     modifier onlyOperator() {
         require(
             _operators[msg.sender],
-            "JamNFTStaking: caller is not operator"
+            "SuperfineNFTStaking: caller is not operator"
         );
         _;
     }
 
-    function getCurrentReward(address participant)
-        public
-        view
-        returns (uint256)
-    {
+    function getCurrentReward(
+        address participant
+    ) public view returns (uint256) {
         StakingInfo storage stakingInfo = _stakingInfoOf[participant];
         uint256 elapsedTime = block.timestamp - stakingInfo.lastActionMoment;
         if (_totalStakedNFTs == 0) return 0;
@@ -115,11 +113,9 @@ contract JamNFTStaking is
             1 days;
     }
 
-    function estimateDailyReward(address participant)
-        external
-        view
-        returns (uint256)
-    {
+    function estimateDailyReward(
+        address participant
+    ) external view returns (uint256) {
         StakingInfo storage stakingInfo = _stakingInfoOf[participant];
         if (_totalStakedNFTs == 0) return 0;
         return (rewardPerDay * stakingInfo.numStakedNFTs) / _totalStakedNFTs;
@@ -139,11 +135,9 @@ contract JamNFTStaking is
         return whitelist;
     }
 
-    function getStakedNFTs(address participant)
-        external
-        view
-        returns (NFTInfo[] memory)
-    {
+    function getStakedNFTs(
+        address participant
+    ) external view returns (NFTInfo[] memory) {
         uint256 numStakedNFTs = 0;
 
         // Get the number of staked ERC721 NFTs
@@ -207,11 +201,9 @@ contract JamNFTStaking is
         return stakedNFTs;
     }
 
-    function getUnstakedNFTs(address participant)
-        external
-        view
-        returns (NFTInfo[] memory)
-    {
+    function getUnstakedNFTs(
+        address participant
+    ) external view returns (NFTInfo[] memory) {
         uint256 numUnstakedNFTs = 0;
 
         // Get the number of owned ERC721 NFTs
@@ -222,7 +214,7 @@ contract JamNFTStaking is
 
         // Get the number of owned ERC1155 NFTs
         for (uint256 i = 0; i < _erc1155Whitelist.length; i++)
-            numUnstakedNFTs += JamNFT1155(_erc1155Whitelist[i])
+            numUnstakedNFTs += SuperfineNFT1155(_erc1155Whitelist[i])
                 .getAllOwnedTokens(participant)
                 .length;
 
@@ -252,8 +244,10 @@ contract JamNFTStaking is
 
         // Get unstaked ERC1155 NFTs
         for (uint256 i = 0; i < _erc1155Whitelist.length; i++) {
-            JamNFT1155 nftContract = JamNFT1155(_erc1155Whitelist[i]);
-            JamNFT1155.TokenInfo[] memory ownedNFT1155s = nftContract
+            SuperfineNFT1155 nftContract = SuperfineNFT1155(
+                _erc1155Whitelist[i]
+            );
+            SuperfineNFT1155.TokenInfo[] memory ownedNFT1155s = nftContract
                 .getAllOwnedTokens(participant);
             for (uint256 j = 0; j < ownedNFT1155s.length; j++) {
                 unstakedNFTs[nftCount] = NFTInfo(
@@ -270,13 +264,13 @@ contract JamNFTStaking is
         return unstakedNFTs;
     }
 
-    function setOperators(address[] memory operators, bool[] memory isOperators)
-        external
-        onlyOwner
-    {
+    function setOperators(
+        address[] memory operators,
+        bool[] memory isOperators
+    ) external onlyOwner {
         require(
             operators.length == isOperators.length,
-            "JamNFTStaking: lengths mismatch"
+            "SuperfineNFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
@@ -300,7 +294,7 @@ contract JamNFTStaking is
     ) external onlyOperator {
         require(
             nftAddresses.length == types.length,
-            "JamNFTStaking: lengths mismatch"
+            "SuperfineNFTStaking: lengths mismatch"
         );
 
         for (uint256 i = 0; i < nftAddresses.length; i++) {
@@ -315,7 +309,10 @@ contract JamNFTStaking is
                     success = IERC165(nftAddress).supportsInterface(
                         type(IERC1155).interfaceId
                     );
-            require(success, "JamNFTStaking: cannot whitelist non-NFT address");
+            require(
+                success,
+                "SuperfineNFTStaking: cannot whitelist non-NFT address"
+            );
             _typeOf[nftAddress] = types[i];
             if (types[i] == NFTType.ERC721) {
                 _isERC721Whitelisted[nftAddress] = true;
@@ -339,15 +336,14 @@ contract JamNFTStaking is
         }
     }
 
-    function unwhitelistNFT(address[] calldata nftAddresses)
-        external
-        onlyOperator
-    {
+    function unwhitelistNFT(
+        address[] calldata nftAddresses
+    ) external onlyOperator {
         for (uint256 i = 0; i < nftAddresses.length; i++) {
             address nftAddress = nftAddresses[i];
             require(
                 _numStakedNFTs[nftAddress] == 0,
-                "JamNFTStaking: NFTs still staked"
+                "SuperfineNFTStaking: NFTs still staked"
             );
             if (_isERC721Whitelisted[nftAddress]) {
                 _isERC721Whitelisted[nftAddress] = false;
@@ -382,7 +378,7 @@ contract JamNFTStaking is
         require(
             nftAddresses.length == tokenIds.length &&
                 nftAddresses.length == quantities.length,
-            "JamNFTStaking: lengths mismatch"
+            "SuperfineNFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)
             _stake(nftAddresses[i], tokenIds[i], quantities[i]);
@@ -396,7 +392,7 @@ contract JamNFTStaking is
         require(
             nftAddresses.length == tokenIds.length &&
                 nftAddresses.length == quantities.length,
-            "JamNFTStaking: lengths mismatch"
+            "SuperfineNFTStaking: lengths mismatch"
         );
         for (uint256 i = 0; i < nftAddresses.length; i++)
             _unstake(nftAddresses[i], tokenIds[i], quantities[i]);
@@ -410,15 +406,15 @@ contract JamNFTStaking is
         require(
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155Whitelisted[nftAddress],
-            "JamNFTStaking: this NFT is not supported"
+            "SuperfineNFTStaking: this NFT is not supported"
         );
-        require(quantity > 0, "JamNFTStaking: stake nothing");
+        require(quantity > 0, "SuperfineNFTStaking: stake nothing");
         _savingOf[msg.sender] = getCurrentReward(msg.sender);
         StakingInfo storage stakingInfo = _stakingInfoOf[msg.sender];
         if (_typeOf[nftAddress] == NFTType.ERC721) {
             require(
                 quantity == 1,
-                "JamNFTStaking: cannot stake more than 1 ERC721 NFT at a time"
+                "SuperfineNFTStaking: cannot stake more than 1 ERC721 NFT at a time"
             );
             ERC721Enumerable(nftAddress).safeTransferFrom(
                 msg.sender,
@@ -456,24 +452,24 @@ contract JamNFTStaking is
         require(
             _isERC721Whitelisted[nftAddress] ||
                 _isERC1155Whitelisted[nftAddress],
-            "JamNFTStaking: this NFT is not supported"
+            "SuperfineNFTStaking: this NFT is not supported"
         );
-        require(quantity > 0, "JamNFTStaking: unstake nothing");
+        require(quantity > 0, "SuperfineNFTStaking: unstake nothing");
         _savingOf[msg.sender] = getCurrentReward(msg.sender);
         StakingInfo storage stakingInfo = _stakingInfoOf[msg.sender];
         require(
             block.timestamp >=
                 stakingInfo.stakingMomentOf[nftAddress][tokenId] + lockDuration,
-            "JamNFTStaking: NFT not unlocked yet"
+            "SuperfineNFTStaking: NFT not unlocked yet"
         );
         if (_typeOf[nftAddress] == NFTType.ERC721) {
             require(
                 quantity == 1,
-                "JamNFTStaking: cannot unstake more than 1 ERC721 NFT at a time"
+                "SuperfineNFTStaking: cannot unstake more than 1 ERC721 NFT at a time"
             );
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] == 1,
-                "JamNFTStaking: only owner can unstake"
+                "SuperfineNFTStaking: only owner can unstake"
             );
             ERC721Enumerable(nftAddress).safeTransferFrom(
                 address(this),
@@ -498,7 +494,7 @@ contract JamNFTStaking is
         } else if (_typeOf[nftAddress] == NFTType.ERC1155) {
             require(
                 stakingInfo.stakedQuantityOf[nftAddress][tokenId] >= quantity,
-                "JamNFTStaking: not enough NFTs to unstake"
+                "SuperfineNFTStaking: not enough NFTs to unstake"
             );
             IERC1155(nftAddress).safeTransferFrom(
                 address(this),
@@ -540,10 +536,10 @@ contract JamNFTStaking is
         delete _savingOf[msg.sender];
         if (rewardToken == address(0)) {
             (bool success, ) = payable(msg.sender).call{value: reward}("");
-            require(success, "JamNFTStaking: native token settle failed");
+            require(success, "SuperfineNFTStaking: native token settle failed");
         } else {
             bool success = IERC20(rewardToken).transfer(msg.sender, reward);
-            require(success, "JamNFTStaking: ERC20 token settle failed");
+            require(success, "SuperfineNFTStaking: ERC20 token settle failed");
         }
         emit RewardClaimed(msg.sender, reward);
     }
@@ -556,21 +552,20 @@ contract JamNFTStaking is
         _unpause();
     }
 
-    function emergencyWithdraw(address payable recipient, address currency)
-        external
-        onlyOwner
-        whenPaused
-    {
+    function emergencyWithdraw(
+        address payable recipient,
+        address currency
+    ) external onlyOwner whenPaused {
         if (currency == address(0)) {
             uint256 amount = address(this).balance;
             (bool success, ) = recipient.call{value: amount}("");
-            require(success, "JamNFTStaking: emergency withdraw failed");
+            require(success, "SuperfineNFTStaking: emergency withdraw failed");
             emit EmergencyWithdrawn(recipient, amount);
         } else {
             IERC20 currencyContract = IERC20(currency);
             uint256 amount = currencyContract.balanceOf(address(this));
             bool success = currencyContract.transfer(recipient, amount);
-            require(success, "JamNFTStaking: emergency withdraw failed");
+            require(success, "SuperfineNFTStaking: emergency withdraw failed");
             emit EmergencyWithdrawn(recipient, amount);
         }
     }

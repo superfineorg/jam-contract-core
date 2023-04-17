@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "@openzeppelin/contracts/utils/Context.sol";
 
-contract JamERC721Bridgeable is
+contract SuperfineERC721Bridgeable is
     Context,
     AccessControlEnumerable,
     ERC721Enumerable,
@@ -49,26 +49,23 @@ contract JamERC721Bridgeable is
         return _baseTokenURI;
     }
 
-    function _setTokenURI(uint256 tokenId, string memory _tokenURI)
-        internal
-        virtual
-    {
+    function _setTokenURI(
+        uint256 tokenId,
+        string memory _tokenURI
+    ) internal virtual {
         require(
             _exists(tokenId),
-            "JamERC721Bridgeable: URI set of nonexistent token"
+            "SuperfineERC721Bridgeable: URI set of nonexistent token"
         );
         _tokenURIs[tokenId] = _tokenURI;
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override returns (string memory) {
         require(
             _exists(tokenId),
-            "JamERC721Bridgeable: URI query for nonexistent token"
+            "SuperfineERC721Bridgeable: URI query for nonexistent token"
         );
 
         string memory _tokenURI = _tokenURIs[tokenId];
@@ -103,7 +100,7 @@ contract JamERC721Bridgeable is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamERC721Bridgeable: must have minter role to mint"
+            "SuperfineERC721Bridgeable: must have minter role to mint"
         );
 
         // We cannot just use balanceOf to create the new tokenId because tokens
@@ -124,7 +121,7 @@ contract JamERC721Bridgeable is
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamERC721Bridgeable: must have pauser role to pause"
+            "SuperfineERC721Bridgeable: must have pauser role to pause"
         );
         _pause();
     }
@@ -141,7 +138,7 @@ contract JamERC721Bridgeable is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamERC721Bridgeable: must have pauser role to unpause"
+            "SuperfineERC721Bridgeable: must have pauser role to unpause"
         );
         _unpause();
     }
@@ -157,7 +154,9 @@ contract JamERC721Bridgeable is
     /**
      * @dev See {IERC165-supportsInterface}.
      */
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual

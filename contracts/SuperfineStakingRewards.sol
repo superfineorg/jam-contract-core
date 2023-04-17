@@ -7,13 +7,13 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 
 // Inheritance
-import "./JamRewardsDistributionRecipient.sol";
+import "./SuperfineRewardsDistributionRecipient.sol";
 
 /** 
     Mostly using Staking Reward from: https://docs.synthetix.io/contracts/source/contracts/stakingrewards
 */
-contract JamStakingRewards is
-    JamRewardsDistributionRecipient,
+contract SuperfineStakingRewards is
+    SuperfineRewardsDistributionRecipient,
     ReentrancyGuard,
     Pausable
 {
@@ -106,25 +106,20 @@ contract JamStakingRewards is
         return rewardRate.mul(rewardsDuration);
     }
 
-    function stake(uint256 amount)
-        external
-        nonReentrant
-        whenNotPaused
-        updateReward(msg.sender)
-    {
-        require(amount > 0, "JamStakingRewards: cannot stake 0");
+    function stake(
+        uint256 amount
+    ) external nonReentrant whenNotPaused updateReward(msg.sender) {
+        require(amount > 0, "SuperfineStakingRewards: cannot stake 0");
         _totalSupply = _totalSupply.add(amount);
         _balances[msg.sender] = _balances[msg.sender].add(amount);
         stakingToken.safeTransferFrom(msg.sender, address(this), amount);
         emit Staked(msg.sender, amount);
     }
 
-    function withdraw(uint256 amount)
-        public
-        nonReentrant
-        updateReward(msg.sender)
-    {
-        require(amount > 0, "JamStakingRewards: cannot withdraw 0");
+    function withdraw(
+        uint256 amount
+    ) public nonReentrant updateReward(msg.sender) {
+        require(amount > 0, "SuperfineStakingRewards: cannot withdraw 0");
         _totalSupply = _totalSupply.sub(amount);
         _balances[msg.sender] = _balances[msg.sender].sub(amount);
         stakingToken.safeTransfer(msg.sender, amount);
@@ -145,12 +140,9 @@ contract JamStakingRewards is
         getReward();
     }
 
-    function notifyRewardAmount(uint256 reward)
-        external
-        override
-        onlyRewardsDistribution
-        updateReward(address(0))
-    {
+    function notifyRewardAmount(
+        uint256 reward
+    ) external override onlyRewardsDistribution updateReward(address(0)) {
         if (block.timestamp >= periodFinish) {
             rewardRate = reward.div(rewardsDuration);
         } else {
@@ -166,7 +158,7 @@ contract JamStakingRewards is
         uint256 balance = rewardsToken.balanceOf(address(this));
         require(
             rewardRate <= balance.div(rewardsDuration),
-            "JamStakingRewards: provided reward too high"
+            "SuperfineStakingRewards: provided reward too high"
         );
 
         lastUpdateTime = block.timestamp;
@@ -175,13 +167,13 @@ contract JamStakingRewards is
     }
 
     // Added to support recovering LP Rewards from other systems such as BAL to be distributed to holders
-    function recoverERC20(address tokenAddress, uint256 tokenAmount)
-        external
-        onlyOwner
-    {
+    function recoverERC20(
+        address tokenAddress,
+        uint256 tokenAmount
+    ) external onlyOwner {
         require(
             tokenAddress != address(stakingToken),
-            "JamStakingRewards: cannot withdraw the staking token"
+            "SuperfineStakingRewards: cannot withdraw the staking token"
         );
         IERC20(tokenAddress).safeTransfer(owner(), tokenAmount);
         emit Recovered(tokenAddress, tokenAmount);
@@ -190,7 +182,7 @@ contract JamStakingRewards is
     function setRewardsDuration(uint256 _rewardsDuration) external onlyOwner {
         require(
             block.timestamp > periodFinish,
-            "JamStakingRewards: previous rewards period must be complete before changing the duration for the new period"
+            "SuperfineStakingRewards: previous rewards period must be complete before changing the duration for the new period"
         );
         rewardsDuration = _rewardsDuration;
         emit RewardsDurationUpdated(rewardsDuration);

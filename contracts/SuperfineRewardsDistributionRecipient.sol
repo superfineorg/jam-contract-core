@@ -4,7 +4,7 @@ pragma solidity ^0.8;
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 // https://docs.synthetix.io/contracts/source/contracts/rewardsdistributionrecipient
-abstract contract JamRewardsDistributionRecipient is Ownable {
+abstract contract SuperfineRewardsDistributionRecipient is Ownable {
     address public rewardsDistribution;
 
     function notifyRewardAmount(uint256 reward) external virtual;
@@ -12,15 +12,14 @@ abstract contract JamRewardsDistributionRecipient is Ownable {
     modifier onlyRewardsDistribution() {
         require(
             msg.sender == rewardsDistribution,
-            "JamRewardsDistributionRecipient: caller is not RewardsDistribution contract"
+            "SuperfineRewardsDistributionRecipient: caller is not RewardsDistribution contract"
         );
         _;
     }
 
-    function setRewardsDistribution(address _rewardsDistribution)
-        external
-        onlyOwner
-    {
+    function setRewardsDistribution(
+        address _rewardsDistribution
+    ) external onlyOwner {
         rewardsDistribution = _rewardsDistribution;
     }
 }

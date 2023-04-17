@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Burnable.sol";
 import "@openzeppelin/contracts/token/ERC1155/extensions/ERC1155Pausable.sol";
 import "./ERC1155Tradable.sol";
 
-contract JamNFT1155OpenSea is
+contract SuperfineNFT1155OpenSea is
     ERC1155Burnable,
     ERC1155Pausable,
     ERC1155Tradable
@@ -39,24 +39,19 @@ contract JamNFT1155OpenSea is
         return ERC1155Tradable._msgSender();
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override(ERC1155, ERC1155Tradable)
-        returns (bool isOperator)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override(ERC1155, ERC1155Tradable) returns (bool isOperator) {
         return ERC1155Tradable.isApprovedForAll(owner, operator);
     }
 
-    function uri(uint256 tokenId)
-        public
-        view
-        override(ERC1155, ERC1155Tradable)
-        returns (string memory)
-    {
+    function uri(
+        uint256 tokenId
+    ) public view override(ERC1155, ERC1155Tradable) returns (string memory) {
         require(
             _isTokenIdMinted[tokenId] && _exists(tokenId),
-            "JamNFT1155OpenSea: URI query for non-existent token"
+            "SuperfineNFT1155OpenSea: URI query for non-existent token"
         );
         if (bytes(customUri[tokenId]).length > 0) return customUri[tokenId];
         return
@@ -83,7 +78,7 @@ contract JamNFT1155OpenSea is
             lastIndex = _mintedTokenIds.length - 1;
         require(
             fromIndex <= lastIndex,
-            "JamNFT1155OpenSea: invalid query range"
+            "SuperfineNFT1155OpenSea: invalid query range"
         );
 
         // Get the number of owned ERC1155 NFTs
@@ -131,7 +126,7 @@ contract JamNFT1155OpenSea is
     ) internal virtual override(ERC1155, ERC1155Pausable) {
         require(
             tokenIds.length == quantities.length,
-            "JamNFT1155OpenSea: lengths mismatch"
+            "SuperfineNFT1155OpenSea: lengths mismatch"
         );
         if (from == address(0))
             for (uint256 i = 0; i < tokenIds.length; i++)

@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Burnable.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Pausable.sol";
 import "./ERC721Tradable.sol";
 
-contract JamSuperHappyFrens is
+contract SuperfineOGPass is
     Context,
     AccessControlEnumerable,
     ERC721Burnable,
@@ -27,7 +27,6 @@ contract JamSuperHappyFrens is
 
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant PAUSER_ROLE = keccak256("PAUSER_ROLE");
-    uint256 public nftLimit;
     string private _baseTokenURI;
     uint256[] private _allTokens; // Array with all token ids, used for enumeration
     mapping(address => mapping(uint256 => uint256)) private _ownedTokens;
@@ -39,11 +38,9 @@ contract JamSuperHappyFrens is
         string memory name_,
         string memory symbol_,
         string memory baseTokenURI_,
-        address proxyRegistryAddress,
-        uint256 nftLimit_
+        address proxyRegistryAddress
     ) ERC721Tradable(name_, symbol_, proxyRegistryAddress) {
         _baseTokenURI = baseTokenURI_;
-        nftLimit = nftLimit_;
         _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _setupRole(MINTER_ROLE, msg.sender);
         _setupRole(PAUSER_ROLE, msg.sender);
@@ -58,12 +55,10 @@ contract JamSuperHappyFrens is
         return ERC721Tradable._msgSender();
     }
 
-    function isApprovedForAll(address owner, address operator)
-        public
-        view
-        override(ERC721, ERC721Tradable)
-        returns (bool)
-    {
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) public view override(ERC721, ERC721Tradable) returns (bool) {
         return ERC721Tradable.isApprovedForAll(owner, operator);
     }
 
@@ -71,13 +66,10 @@ contract JamSuperHappyFrens is
         return _baseTokenURI;
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721Tradable)
-        returns (string memory)
-    {
-        require(_exists(tokenId), "JamNFT721: token does not exist");
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721Tradable) returns (string memory) {
+        require(_exists(tokenId), "SuperfineOGPass: token does not exist");
         return
             string(
                 abi.encodePacked(
@@ -88,15 +80,13 @@ contract JamSuperHappyFrens is
             );
     }
 
-    function tokenOfOwnerByIndex(address owner, uint256 index)
-        public
-        view
-        virtual
-        returns (uint256)
-    {
+    function tokenOfOwnerByIndex(
+        address owner,
+        uint256 index
+    ) public view virtual returns (uint256) {
         require(
             index < ERC721.balanceOf(owner),
-            "JamNFT721: owner index out of bounds"
+            "SuperfineOGPass: owner index out of bounds"
         );
         return _ownedTokens[owner][index];
     }
@@ -106,15 +96,16 @@ contract JamSuperHappyFrens is
     }
 
     function tokenByIndex(uint256 index) public view virtual returns (uint256) {
-        require(index < totalSupply(), "JamNFT721: global index out of bounds");
+        require(
+            index < totalSupply(),
+            "SuperfineOGPass: global index out of bounds"
+        );
         return _allTokens[index];
     }
 
-    function getOwnedTokens(address user)
-        external
-        view
-        returns (TokenInfo[] memory)
-    {
+    function getOwnedTokens(
+        address user
+    ) external view returns (TokenInfo[] memory) {
         TokenInfo[] memory ownedTokens = new TokenInfo[](balanceOf(user));
         for (uint256 i = 0; i < balanceOf(user); i++) {
             uint256 tokenId = tokenOfOwnerByIndex(user, i);
@@ -134,20 +125,15 @@ contract JamSuperHappyFrens is
     ) public virtual {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamNFT721: must have minter role to mint"
+            "SuperfineOGPass: must have minter role to mint"
         );
-        require(tokenId < nftLimit, "JamNFT721: Maximum NFTs minted");
         _safeMint(to, tokenId);
     }
 
     function mintTo(address to) public override {
         require(
             hasRole(MINTER_ROLE, _msgSender()),
-            "JamNFT721: must have minter role to mint"
-        );
-        require(
-            _nextTokenId.current() < nftLimit,
-            "JamNFT721: Maximum NFTs minted"
+            "SuperfineOGPass: must have minter role to mint"
         );
         while (_exists(_nextTokenId.current())) _nextTokenId.increment();
         uint256 currentTokenId = _nextTokenId.current();
@@ -155,10 +141,14 @@ contract JamSuperHappyFrens is
         _safeMint(to, currentTokenId);
     }
 
+    function mintBulk(address[] memory recipients) external {
+        for (uint256 i = 0; i < recipients.length; i++) mintTo(recipients[i]);
+    }
+
     function pause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamNFT721: must have pauser role to pause"
+            "SuperfineOGPass: must have pauser role to pause"
         );
         _pause();
     }
@@ -166,7 +156,7 @@ contract JamSuperHappyFrens is
     function unpause() public virtual {
         require(
             hasRole(PAUSER_ROLE, _msgSender()),
-            "JamNFT721: must have pauser role to unpause"
+            "SuperfineOGPass: must have pauser role to unpause"
         );
         _unpause();
     }
@@ -227,9 +217,10 @@ contract JamSuperHappyFrens is
      * @param from address representing the previous owner of the given token ID
      * @param tokenId uint256 ID of the token to be removed from the tokens list of the given address
      */
-    function _removeTokenFromOwnerEnumeration(address from, uint256 tokenId)
-        private
-    {
+    function _removeTokenFromOwnerEnumeration(
+        address from,
+        uint256 tokenId
+    ) private {
         // To prevent a gap in from's tokens array, we store the last token in the index of the token to delete, and
         // then delete the last slot (swap and pop).
 
@@ -274,7 +265,9 @@ contract JamSuperHappyFrens is
         _allTokens.pop();
     }
 
-    function supportsInterface(bytes4 interfaceId)
+    function supportsInterface(
+        bytes4 interfaceId
+    )
         public
         view
         virtual

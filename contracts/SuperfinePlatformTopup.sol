@@ -5,7 +5,7 @@ pragma solidity ^0.8.15;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract JamPlatformTopup is Ownable {
+contract SuperfinePlatformTopup is Ownable {
     address public platform;
     address[] private _whitelistedCurrencies;
     mapping(address => bool) private _isCurrencyWhitelisted;
@@ -30,7 +30,7 @@ contract JamPlatformTopup is Ownable {
     ) external onlyOwner {
         require(
             currencies.length == isWhitelisteds.length,
-            "JamPlatformTopup: lengths mismatch"
+            "SuperfinePlatformTopup: lengths mismatch"
         );
         for (uint256 i = 0; i < currencies.length; i++)
             if (isWhitelisteds[i]) {
@@ -60,14 +60,14 @@ contract JamPlatformTopup is Ownable {
     ) external {
         require(
             _isCurrencyWhitelisted[currency],
-            "JamPlatformTopup: currency not supported"
+            "SuperfinePlatformTopup: currency not supported"
         );
         bool success = IERC20(currency).transferFrom(
             msg.sender,
             platform,
             amount
         );
-        require(success, "JamPlatformTopup: failed to top up money");
+        require(success, "SuperfinePlatformTopup: failed to top up money");
         emit PlatformToppedUp(id, currency, amount);
     }
 }

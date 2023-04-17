@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 
 import "./tokens/ERC721/SimpleERC721.sol";
 
-contract JamERC721Factory {
+contract SuperfineERC721Factory {
     SimpleERC721[] private uniqueItems;
 
     event CreateERC721(
@@ -36,7 +36,9 @@ contract JamERC721Factory {
         );
     }
 
-    function getERC721(uint256 _index)
+    function getERC721(
+        uint256 _index
+    )
         public
         view
         returns (
