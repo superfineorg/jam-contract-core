@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-pragma solidity ^0.8.15;
+pragma solidity ^0.8.18;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC1155/IERC1155.sol";
 
-contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
+contract SuperfineAirdrop is Ownable, ReentrancyGuard {
     enum AssetType {
         ERC20,
         ERC721,
@@ -19,7 +19,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         AssetType assetType;
         address assetAddress;
         uint256 assetId; // 0 for ERC20
-        uint256 availableAmount; // 1 for ERC721
+        uint256 amount; // 1 for ERC721
     }
 
     struct AirdropCampaign {
@@ -27,9 +27,8 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         address creator;
         Asset[] assets;
         uint256 maxBatchSize;
-        uint256 startingTime;
-        uint256 totalAvailableAssets;
-        uint256 airdropFee;
+        uint256 chargedFee;
+        bool airdropStarted;
     }
 
     uint256 private _maxBatchSize;
@@ -41,16 +40,14 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         string campaignId,
         address creator,
         Asset[] assets,
-        uint256 maxBatchSize,
-        uint256 startingTime
+        uint256 maxBatchSize
     );
 
     event AirdropCampaignUpdated(
         string campaignId,
         address creator,
         Asset[] assets,
-        uint256 maxBatchSize,
-        uint256 startingTime
+        uint256 maxBatchSize
     );
 
     event AssetsAirdropped(
@@ -63,7 +60,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     constructor(uint256 maxBatchSize, uint256 feePerBatch) Ownable() {
         require(
             maxBatchSize > 0,
-            "PlaylinkAirdrop: batch size must be greater than zero"
+            "SuperfineAirdrop: the size of the batch must be greater than zero"
         );
         _maxBatchSize = maxBatchSize;
         _feePerBatch = feePerBatch;
@@ -73,24 +70,20 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     modifier onlyOperators() {
         require(
             _operators[msg.sender],
-            "PlaylinkAirdrop: caller is not operator"
+            "SuperfineAirdrop: the caller is not the operator"
         );
         _;
     }
 
-    function getCampaignById(string memory campaignId)
-        external
-        view
-        returns (AirdropCampaign memory)
-    {
+    function getCampaignById(
+        string memory campaignId
+    ) external view returns (AirdropCampaign memory) {
         return _campaignById[campaignId];
     }
 
-    function estimateAirdropFee(uint256 numAssets)
-        public
-        view
-        returns (uint256)
-    {
+    function estimateAirdropFee(
+        uint256 numAssets
+    ) public view returns (uint256) {
         uint256 numRequiredBatches = (numAssets + _maxBatchSize - 1) /
             _maxBatchSize; // ceil(numAssets / _maxBatchSize)
         return numRequiredBatches * _feePerBatch;
@@ -102,7 +95,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     ) external onlyOwner {
         require(
             operators.length == isOperators.length,
-            "PlaylinkAirdrop: lengths mismatch"
+            "SuperfineAirdrop: the number of operators and the number of statuses must be equal"
         );
         for (uint256 i = 0; i < operators.length; i++)
             _operators[operators[i]] = isOperators[i];
@@ -111,7 +104,7 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     function setMaxBatchSize(uint256 newSize) external onlyOperators {
         require(
             newSize > 0,
-            "PlaylinkAirdrop: batch size must be greater than zero"
+            "SuperfineAirdrop: the size of the batch must be greater than zero"
         );
         _maxBatchSize = newSize;
     }
@@ -122,150 +115,135 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
 
     function createAirdropCampaign(
         string calldata campaignId,
-        Asset[] calldata assets,
-        uint256 startingTime
+        Asset[] calldata assets
     ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
 
         // Check if campaign exists
         require(
             campaign.creator == address(0),
-            "PlaylinkAirdrop: campaign already created"
+            "SuperfineAirdrop: the campaign has already been created before"
         );
 
         // Check payment
         uint256 airdropFee = estimateAirdropFee(assets.length);
         require(
             msg.value >= airdropFee,
-            "PlaylinkAirdrop: insufficient airdrop fee"
+            "SuperfineAirdrop: the paid fee is insufficient"
         );
         if (msg.value > airdropFee) {
             (bool success, ) = payable(msg.sender).call{
                 value: msg.value - airdropFee
             }("");
-            require(success, "PlaylinkAirdrop: failed to return excess");
+            require(
+                success,
+                "SuperfineAirdrop: the excess is failed to be returned"
+            );
         }
 
         // Validate data
-        require(
-            block.timestamp < startingTime,
-            "PlaylinkAirdrop: starting time too low"
-        );
         for (uint256 i = 0; i < assets.length; i++) {
             Asset memory asset = assets[i];
             require(
                 uint256(asset.assetType) <= 2,
-                "PlaylinkAirdrop: invalid asset type"
+                "SuperfineAirdrop: the asset type is invalid"
             );
             if (asset.assetType == AssetType.ERC20)
                 require(
                     asset.assetId == 0,
-                    "PlaylinkAirdrop: invalid ERC20 asset ID"
+                    "SuperfineAirdrop: the asset ID of the ERC20 token must be 0"
                 );
             else if (asset.assetType == AssetType.ERC721)
                 require(
-                    asset.availableAmount == 1,
-                    "PlaylinkAirdrop: invalid ERC721 amount"
+                    asset.amount == 1,
+                    "SuperfineAirdrop: the amount of the ERC721 token must be 1"
                 );
         }
 
         // Create new airdrop campaign
-        uint256 totalAvailableAssets = 0;
-        for (uint256 j = 0; j < assets.length; j++)
-            totalAvailableAssets += assets[j].availableAmount;
         campaign.campaignId = campaignId;
         campaign.creator = msg.sender;
         for (uint256 k = 0; k < assets.length; k++)
             campaign.assets.push(assets[k]);
         campaign.maxBatchSize = _maxBatchSize;
-        campaign.startingTime = startingTime;
-        campaign.totalAvailableAssets = totalAvailableAssets;
-        campaign.airdropFee = airdropFee;
+        campaign.chargedFee = airdropFee;
 
         emit AirdropCampaignCreated(
             campaignId,
             msg.sender,
             assets,
-            _maxBatchSize,
-            startingTime
+            _maxBatchSize
         );
     }
 
     function updateCampaign(
         string calldata campaignId,
-        Asset[] calldata assets,
-        uint256 startingTime
+        Asset[] calldata assets
     ) external payable nonReentrant {
         AirdropCampaign storage campaign = _campaignById[campaignId];
 
         // Check campaign ownership
         require(
             campaign.creator == msg.sender,
-            "PlaylinkAirdrop: caller is not campaign owner"
+            "SuperfineAirdrop: the caller is not the owner of the campaign"
         );
 
         // Make sure that this campaign has not started yet
         require(
-            block.timestamp < campaign.startingTime,
-            "PlaylinkAirdrop: campaign started, cannot update assets"
+            !campaign.airdropStarted,
+            "SuperfineAirdrop: the assets of the campaign cannot be updated since the airdrop process has already started"
         );
 
         // Check payment
         uint256 newAirdropFee = estimateAirdropFee(assets.length);
-        if (newAirdropFee > campaign.airdropFee) {
+        if (newAirdropFee > campaign.chargedFee) {
             require(
-                msg.value >= newAirdropFee - campaign.airdropFee,
-                "PlaylinkAirdrop:insufficient airdrop fee"
+                msg.value >= newAirdropFee - campaign.chargedFee,
+                "SuperfineAirdrop:insufficient airdrop fee"
             );
-            if (msg.value > newAirdropFee - campaign.airdropFee) {
+            if (msg.value > newAirdropFee - campaign.chargedFee) {
                 (bool success, ) = payable(msg.sender).call{
-                    value: msg.value + campaign.airdropFee - newAirdropFee
+                    value: msg.value + campaign.chargedFee - newAirdropFee
                 }("");
-                require(success, "PlaylinkAirdrop: failed to return excess");
+                require(
+                    success,
+                    "SuperfineAirdrop: the excess is failed to be returned"
+                );
             }
         }
 
         // Validate data
-        require(
-            block.timestamp < startingTime,
-            "PlaylinkAirdrop: starting time too low"
-        );
         for (uint256 i = 0; i < assets.length; i++) {
             Asset memory asset = assets[i];
             require(
                 uint256(asset.assetType) <= 2,
-                "PlaylinkAirdrop: invalid asset type"
+                "SuperfineAirdrop: the asset type is invalid"
             );
             if (asset.assetType == AssetType.ERC20)
                 require(
                     asset.assetId == 0,
-                    "PlaylinkAirdrop: invalid ERC20 asset ID"
+                    "SuperfineAirdrop: the asset ID of the ERC20 token must be 0"
                 );
             else if (asset.assetType == AssetType.ERC721)
                 require(
-                    asset.availableAmount == 1,
-                    "PlaylinkAirdrop: invalid ERC721 amount"
+                    asset.amount == 1,
+                    "SuperfineAirdrop: the amount of the ERC721 token must be 1"
                 );
         }
 
         // Update campaign info
-        uint256 totalAvailableAssets = 0;
-        for (uint256 j = 0; j < assets.length; j++)
-            totalAvailableAssets += assets[j].availableAmount;
         delete campaign.assets;
         for (uint256 k = 0; k < assets.length; k++)
             campaign.assets.push(assets[k]);
         campaign.maxBatchSize = _maxBatchSize;
-        campaign.startingTime = startingTime;
-        campaign.totalAvailableAssets = totalAvailableAssets;
-        campaign.airdropFee = newAirdropFee;
+        if (newAirdropFee > campaign.chargedFee)
+            campaign.chargedFee = newAirdropFee;
 
         emit AirdropCampaignUpdated(
             campaignId,
             msg.sender,
             assets,
-            campaign.maxBatchSize,
-            startingTime
+            campaign.maxBatchSize
         );
     }
 
@@ -276,63 +254,57 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
     ) external onlyOperators nonReentrant {
         require(
             _campaignById[campaignId].creator != address(0),
-            "PlaylinkAirdrop: campaign does not exist"
+            "SuperfineAirdrop: the campaign does not exist"
         );
         AirdropCampaign storage campaign = _campaignById[campaignId];
         require(
-            block.timestamp > campaign.startingTime,
-            "PlaylinkAirdrop: campaign not start yet"
-        );
-        require(
             assetIndexes.length == recipients.length,
-            "PlaylinkAirdrop: lengths mismatch"
+            "SuperfineAirdrop: the number of assets and the number of recipients must be equal"
         );
         require(
             assetIndexes.length <= campaign.maxBatchSize,
-            "PlaylinkAirdrop: too many assets airdropped"
+            "SuperfineAirdrop: the number of assets must not exceed the maximum size of a single batch"
         );
+        if (!campaign.airdropStarted) campaign.airdropStarted = true;
         Asset[] memory airdroppedAssets = new Asset[](assetIndexes.length);
         for (uint256 i = 0; i < assetIndexes.length; i++) {
             require(
                 assetIndexes[i] < campaign.assets.length,
-                "PlaylinkAirdrop: index out of bound"
+                "SuperfineAirdrop: the asset index cannot be larger than the total number of assets in this campaign"
             );
             airdroppedAssets[i] = campaign.assets[assetIndexes[i]];
             Asset storage asset = campaign.assets[assetIndexes[i]];
             require(
-                asset.availableAmount > 0,
-                "PlaylinkAirdrop: re-airdrop is not allowed"
+                asset.amount > 0,
+                "SuperfineAirdrop: this reward has already been sent before"
             );
             if (asset.assetType == AssetType.ERC20) {
                 bool success = IERC20(asset.assetAddress).transferFrom(
                     campaign.creator,
                     recipients[i],
-                    asset.availableAmount
+                    asset.amount
                 );
                 require(
                     success,
-                    "PlaylinkAirdrop: failed to send ERC20 assets"
+                    "SuperfineAirdrop: the transfer process of the ERC20 assets failed"
                 );
-                campaign.totalAvailableAssets -= asset.availableAmount;
-                asset.availableAmount = 0;
+                asset.amount = 0;
             } else if (asset.assetType == AssetType.ERC721) {
                 IERC721(asset.assetAddress).transferFrom(
                     campaign.creator,
                     recipients[i],
                     asset.assetId
                 );
-                campaign.totalAvailableAssets--;
-                asset.availableAmount = 0;
+                asset.amount = 0;
             } else if (asset.assetType == AssetType.ERC1155) {
                 IERC1155(asset.assetAddress).safeTransferFrom(
                     campaign.creator,
                     recipients[i],
                     asset.assetId,
-                    asset.availableAmount,
+                    asset.amount,
                     abi.encodePacked("Airdrop ERC1155 assets")
                 );
-                campaign.totalAvailableAssets -= asset.availableAmount;
-                asset.availableAmount = 0;
+                asset.amount = 0;
             }
         }
         emit AssetsAirdropped(
@@ -347,6 +319,9 @@ contract PlaylinkAirdrop is Ownable, ReentrancyGuard {
         (bool success, ) = payable(recipient).call{
             value: address(this).balance
         }("");
-        require(success, "PlaylinkAirdrop: failed to withdraw airdrop fee");
+        require(
+            success,
+            "SuperfineAirdrop: the process of withdrawing airdrop fee is failed"
+        );
     }
 }
